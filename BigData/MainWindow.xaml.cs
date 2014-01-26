@@ -23,17 +23,6 @@ namespace BigData
         public MainWindow()
         {
             InitializeComponent();
-            MainWindow.RunTests();
-        }
-
-        public static void RunTests()
-        {
-            var runner = new Tests.TestRunner();
-            runner.RunAll();
-            foreach (var line in runner.Output)
-            {
-                Console.WriteLine(line);
-            }
         }
     }
 }

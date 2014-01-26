@@ -98,12 +98,6 @@
   <ItemGroup>
     <Folder Include="Cache\" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Tests\Tests.csproj">
-      <Project>{7b8cda75-9b7f-43e5-9ea4-f2d322886b1f}</Project>
-      <Name>Tests</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
