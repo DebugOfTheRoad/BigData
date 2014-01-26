@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+//using BigData;
 
 namespace Tests
 {
@@ -10,7 +11,7 @@ namespace Tests
     {
         public void TestAPIAccess()
         {
-
+           //OCLCWrapper wrapper = new OCLCWrapper(someurl);
         }
     }
 }

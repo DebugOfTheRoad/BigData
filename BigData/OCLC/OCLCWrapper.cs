@@ -9,7 +9,6 @@ namespace BigData
         public OCLCWrapper(string rssURL)
         {
             XmlTextReader reader = new XmlTextReader(rssURL);
-    
         }
 
     }
