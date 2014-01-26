@@ -67,6 +67,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="OCLC\OCLCWrapper.cs" />
+    <Compile Include="OCLC\Publication.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -95,7 +97,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Cache\" />
-    <Folder Include="OCLC\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tests\Tests.csproj">

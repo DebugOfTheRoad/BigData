@@ -1,18 +1,16 @@
 ﻿using System;
-using urllib;
-using Publication;
+using System.Xml;
 
-public class OCLCWrapper
+namespace BigData
 {
-    String feed;
-	public OCLCWrapper(string rss)
-	{
-        feed = urlopen(rss);
 
-	}
-
-    List<Publication> PublicationsByISBN(String isbn)
+    public class OCLCWrapper
     {
+        public OCLCWrapper(string rssURL)
+        {
+            XmlTextReader reader = new XmlTextReader(rssURL);
+    
+        }
 
     }
 }
