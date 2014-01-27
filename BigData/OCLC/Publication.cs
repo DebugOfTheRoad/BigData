@@ -6,17 +6,18 @@ namespace BigData
 {
     public class Publication
     {
-        public List<String> ISBNs;
-        public List<String> Authors;
-        public List<Publication> RelatedPublications;
-        //public DateTime dateAdded;
+        //public String ISBN;
+        public String title;
+        public String link;
+        public String desc;
+        // public DateTime dateAdded;
         // public Image coverImage;
 
-        public Publication( List<String> ISBNs, List<String> Authors, List<Publication> RelatedPublications)
+        public Publication(String title, String link, String desc)
         {
-            this.ISBNs = ISBNs;
-            this.Authors = Authors;
-            this.RelatedPublications = RelatedPublications;
+            this.title = title;
+            this.link = link;
+            this.desc = desc;
         }
     }
 }
