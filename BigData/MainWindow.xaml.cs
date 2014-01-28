@@ -21,12 +21,17 @@ namespace BigData
     public partial class MainWindow : Window
     {
         private double scrollOffset;
-        private Rectangle[] artwork;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            scrollOffset = 0;
+            offsetStart = 0;
+            dragStart = 0;
+
             image.Source = RenderArtwork();
+            image2.Source = RenderArtwork();
         }
 
         private ImageSource RenderArtwork()
@@ -36,11 +41,22 @@ namespace BigData
                 new Uri(@"pack://application:,,,/Resources/catcher.jpg", UriKind.RelativeOrAbsolute)
             );
 
+            double imageHeight = 300;
+            double imageWidth = (imageHeight / catcher.PixelHeight) * catcher.PixelWidth;
+
             for (var i = 0; i < 10; i++)
             {
                 group.Children.Add(new ImageDrawing(
                     catcher,
-                    new Rect(i * 200, 0, 200, 300)
+                    new Rect(i * imageWidth, 0, imageWidth, imageHeight)
+                ));
+                group.Children.Add(new ImageDrawing(
+                    catcher,
+                    new Rect(i * imageWidth, imageHeight, imageWidth, imageHeight)
+                ));
+                group.Children.Add(new ImageDrawing(
+                    catcher,
+                    new Rect(i * imageWidth, imageHeight * 2, imageWidth, imageHeight)
                 ));
             }
 
@@ -49,14 +65,25 @@ namespace BigData
             return source;
         }
 
+        private double dragStart;
+        private double offsetStart;
+        private void OnMouseDown(object sender, MouseEventArgs args)
+        {
+            dragStart = args.GetPosition(this).X;
+            offsetStart = scrollOffset;
+        }
+
         private void ReDraw(object sender, MouseEventArgs args)
         {
-            //if (args.LeftButton == MouseButtonState.Released) return;
-            scrollOffset = args.GetPosition(this).X;
+            if (args.LeftButton == MouseButtonState.Released) return;
+            scrollOffset = args.GetPosition(this).X - dragStart + offsetStart;
             var m = new Thickness();
             m.Left = scrollOffset;
             image.Margin = m;
-            
+
+            var n = new Thickness();
+            n.Left = scrollOffset - image2.Source.Width;
+            image2.Margin = n;
         }
 
         private void Exit(object sender, KeyEventArgs args)
