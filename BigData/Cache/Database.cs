@@ -9,7 +9,7 @@ namespace BigData.Cache {
     public class Database {
         private SQLiteConnection sql_con;
         private SQLiteCommand sql_cmd;
-        private SQLiteDataAdapter db;
+        //private SQLiteDataAdapter db;
         
         public Database() {
             sql_con = new SQLiteConnection("Data Source = publications.db, Version = 3, New = false, Compress = true");
