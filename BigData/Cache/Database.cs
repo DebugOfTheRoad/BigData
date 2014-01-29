@@ -8,12 +8,9 @@ using System.Data.SQLite;
 namespace BigData {
     public class Database {
         private SQLiteConnection sql_con;
-<<<<<<< HEAD
         private SQLiteCommand sql_cmd;
         //private SQLiteDataAdapter db;
-=======
         private string rss_feed;
->>>>>>> Added database test
         
         public Database(string feed) {
             SQLiteConnection.CreateFile("publications.db");
