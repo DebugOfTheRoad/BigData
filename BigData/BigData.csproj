@@ -35,6 +35,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>BigData.App</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="SQLite.Designer">
       <HintPath>..\..\..\..\..\..\Program Files (x86)\System.Data.SQLite\2013\bin\SQLite.Designer.dll</HintPath>
@@ -61,23 +64,9 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="App.cs" />
     <Compile Include="Cache\Database.cs" />
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="MainWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OCLC\OCLCWrapper.cs" />
