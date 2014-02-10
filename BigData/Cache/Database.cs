@@ -15,11 +15,12 @@ namespace BigData {
         public Database(string feed) {
             SQLiteConnection.CreateFile("publications.db");
             sql_con = new SQLiteConnection("Data Source = publications.db; Version = 3; New = false; Compress = true");
+            sql_con.Open();
             rss_feed = feed;
         }
         
         public void create_db() {
-            string create_table = "CREATE TABLE Publications(title char(64))";
+            string create_table = "CREATE TABLE Publications(title TEXT)";
             this.sql_command(create_table);
             this.update_db();
         }
@@ -36,17 +37,13 @@ namespace BigData {
         }
 
         private void sql_command(string cmd) {
-            sql_con.Open();
-            SQLiteCommand sql_cmd = new SQLiteCommand(cmd, sql_con);
+            sql_cmd = new SQLiteCommand(cmd, sql_con);
             sql_cmd.ExecuteNonQuery();
-            sql_con.Close();
         }
 
         private SQLiteDataReader sql_query(string query) {
-            sql_con.Open();
-            SQLiteCommand sql_cmd = new SQLiteCommand(query, sql_con);
+            sql_cmd = new SQLiteCommand(query, sql_con);
             SQLiteDataReader reader = sql_cmd.ExecuteReader();
-            //sql_con.Close();
             return reader;
         }
 
@@ -57,8 +54,11 @@ namespace BigData {
             while (reader.Read()) {
                 s = s + "Entry: " + reader["title"] + "\n";
             }
+            return s;
+        }
+
+        public void close() {
             sql_con.Close();
-            return s; 
         }
     }
 }
