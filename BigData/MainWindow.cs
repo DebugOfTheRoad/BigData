@@ -96,7 +96,7 @@ namespace BigData
         {
             storyboard.Pause(this);
             mouseDragStart = args.GetPosition(this).X;
-            imageDragStart = storyboard.GetCurrentProgress(this).Value * 1440;
+            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * 1440;
         }
 
         private void RestartAnimation(object sender, MouseEventArgs args)
