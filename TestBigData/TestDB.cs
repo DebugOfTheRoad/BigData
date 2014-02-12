@@ -12,7 +12,7 @@ namespace TestBigData {
             Database db = new Database(listURL);
             db.create_db();
             System.Console.WriteLine(db.print_all());
-            System.Console.WriteLine("bitches");
+            System.Console.WriteLine("bitches"); // Are you fucking kidding me Chris?
             Pass(); // Look at output Muhahah
         }
     }

@@ -10,8 +10,23 @@ namespace BigData
         public String title;
         public String link;
         public String desc;
+        public String oclcNumber;
         // public DateTime dateAdded;
         // public Image coverImage;
+
+        public Publication()
+        {
+            title = "";
+            link = "";
+            desc = "";
+            oclcNumber = "";
+        }
+
+        public Publication(String number)
+        {
+            this.oclcNumber = number;
+            
+        }
 
         public Publication(String title, String link, String desc)
         {

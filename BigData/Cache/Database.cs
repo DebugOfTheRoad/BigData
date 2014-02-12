@@ -12,6 +12,8 @@ namespace BigData {
         private SQLiteCommand sql_cmd;
         //private SQLiteDataAdapter db;
         private string rss_feed;
+        private string WSKey;
+        private string secretKey;
         
         public Database(string feed) {
             SQLiteConnection.CreateFile("publications.db");
@@ -32,7 +34,7 @@ namespace BigData {
         }
         
         public void update_db() {
-            OCLCWrapper wrapper = new OCLCWrapper(this.rss_feed);
+            OCLCWrapper wrapper = new OCLCWrapper(this.rss_feed, this.WSKey, this.secretKey) ;
             List<Publication> pub_list = wrapper.createPublications();
 
             string insert_query;
