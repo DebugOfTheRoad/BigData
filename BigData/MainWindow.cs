@@ -22,6 +22,8 @@ namespace BigData
         private Image image;
         private Storyboard storyboard;
         private DoubleAnimation animation;
+        private double mouseDragStart;
+        private double imageDragStart;
 
         public MainWindow()
         {
@@ -36,6 +38,8 @@ namespace BigData
             this.Title = "Digital Publication Display";
             this.KeyUp += this.OnKeyUp;
             this.MouseMove += this.SeekToMouse;
+            this.MouseUp += this.RestartAnimation;
+            this.MouseDown += this.OnClick;
 
             canvas = new Canvas();
             this.Content = canvas;
@@ -48,7 +52,7 @@ namespace BigData
             image.RenderTransform = new TranslateTransform();
             RegisterName("transform", image.RenderTransform);
 
-            animation = new DoubleAnimation(1440, new Duration(TimeSpan.FromSeconds(20)));
+            animation = new DoubleAnimation(0, 1440, new Duration(TimeSpan.FromSeconds(60)));
             Storyboard.SetTargetName(animation, "transform");
             Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
 
@@ -91,14 +95,24 @@ namespace BigData
         private void OnClick(object sender, MouseEventArgs args)
         {
             storyboard.Pause(this);
+            mouseDragStart = args.GetPosition(this).X;
+            imageDragStart = storyboard.GetCurrentProgress(this).Value * 1440;
+        }
+
+        private void RestartAnimation(object sender, MouseEventArgs args)
+        {
+            storyboard.Resume(this);
         }
 
         private void SeekToMouse(object sender, MouseEventArgs args)
         {
+            if (MouseButtonState.Pressed != args.LeftButton) return;
+
             storyboard.Pause(this);
 
-            var percent = args.GetPosition(this).X / this.Width;
+            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / 1440;
             var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
+            if (seekTo < 0) { seekTo = 0; }
             storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);
         }
 
