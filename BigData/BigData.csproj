@@ -66,6 +66,7 @@
   <ItemGroup>
     <Compile Include="App.cs" />
     <Compile Include="Cache\Database.cs" />
+    <Compile Include="ImageCollectionCanvas.cs" />
     <Compile Include="MainWindow.cs" />
   </ItemGroup>
   <ItemGroup>

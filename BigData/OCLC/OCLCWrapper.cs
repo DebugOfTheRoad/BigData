@@ -66,8 +66,8 @@ namespace BigData
             {
                 String OCLCQueryURL = "http://www.worldcat.org/webservices/catalog/content/" + number + "?wskey=" + this.WSKey;
                 pubReader = new XmlTextReader(OCLCQueryURL);
-                Console.WriteLine(pubReader.ToString());
-                String coverURL = "http://covers.openlibrary.org/b/oclc/" + number + "-L.jpg"; //problem: get isbn of normal book?
+                //Console.WriteLine(pubReader.ToString());
+                String coverURL = "http://covers.openlibrary.org/b/oclc/" + number + "-L.jpg?default=false"; //problem: get isbn of normal book?
                 Console.WriteLine(coverURL);
             }
             return new List<Publication>();

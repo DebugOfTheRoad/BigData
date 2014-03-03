@@ -41,16 +41,46 @@ namespace BigData
             this.MouseUp += this.RestartAnimation;
             this.MouseDown += this.OnClick;
 
-            canvas = new Canvas();
+            canvas = new ImageCollectionCanvas(new Image[]{
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+                ImageCollectionCanvas.CatcherInTheRye(),
+            });
             this.Content = canvas;
 
-            image = new Image();
-            image.Source = RenderArtwork();
-            canvas.Children.Add(image);
+            //image = new Image();
+            //image.Source = RenderArtwork();
+            //canvas.Children.Add(image);
 
             NameScope.SetNameScope(this, new NameScope());
-            image.RenderTransform = new TranslateTransform();
-            RegisterName("transform", image.RenderTransform);
+            canvas.RenderTransform = new TranslateTransform();
+            RegisterName("transform", canvas.RenderTransform);
 
             animation = new DoubleAnimation(0, 1440, new Duration(TimeSpan.FromSeconds(60)));
             Storyboard.SetTargetName(animation, "transform");
@@ -61,8 +91,29 @@ namespace BigData
             storyboard.Begin(this, true);
         }
 
+        /*
+        private ushort[] GlyphIndicesForString(string str, GlyphTypeface typeface)
+        {
+            return str.ToCharArray()
+                .Select(c => typeface.CharacterToGlyphMap[c])
+                .ToArray();
+        }
+
+        private double[] AdvanceWidthsForString(string str, GlyphTypeface typeface)
+        {
+            return str.ToCharArray()
+                .Select(c => typeface.CharacterToGlyphMap[c])
+                .Select(g => typeface.AdvanceWidths[g] * 16.0)
+                .ToArray();
+        }
+
         private ImageSource RenderArtwork()
         {
+            OCLCWrapper wrapper = new OCLCWrapper(App.PublicationListUri, App.WSKey, App.SecretKey);
+            List<Publication> list = wrapper.createPublications();
+
+            var typeface = new GlyphTypeface(new Uri(@"file://C:\WINDOWS\fonts\segoeui.ttf"));
+            
             var group = new DrawingGroup();
             var catcher = new BitmapImage(
                 new Uri(@"pack://application:,,,/Resources/catcher.jpg", UriKind.RelativeOrAbsolute)
@@ -71,8 +122,27 @@ namespace BigData
             double imageHeight = 300;
             double imageWidth = (imageHeight / catcher.PixelHeight) * catcher.PixelWidth;
 
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < list.Count; i++)
             {
+                var drawing = new GlyphRunDrawing(Brushes.CornflowerBlue, new GlyphRun(
+                    typeface,
+                    0,
+                    false,
+                    16.0,
+                    GlyphIndicesForString(list[i].oclcNumber, typeface),
+                    new Point(i * imageWidth, 0),
+                    AdvanceWidthsForString(list[i].oclcNumber, typeface),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                    ));
+                group.Children.Add(drawing);
+                Console.WriteLine(drawing.Bounds.Height);
+
+                /*
                 group.Children.Add(new ImageDrawing(
                     catcher,
                     new Rect(i * imageWidth, 0, imageWidth, imageHeight)
@@ -85,12 +155,14 @@ namespace BigData
                     catcher,
                     new Rect(i * imageWidth, imageHeight * 2, imageWidth, imageHeight)
                 ));
+                 
             }
 
             var source = new DrawingImage(group);
             source.Freeze();
             return source;
         }
+        */
 
         private void OnClick(object sender, MouseEventArgs args)
         {
