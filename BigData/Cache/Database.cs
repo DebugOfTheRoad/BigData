@@ -75,11 +75,14 @@ namespace BigData {
 
         public ArrayList get_new_books(int date) {
             ArrayList book_list = new ArrayList();
-            string query = "SELECT isbn, cover FROM Publications WHERE date_added >= " + date + ";";
+            string query = "SELECT * FROM Publications WHERE date_added >= " + date + ";";
             SQLiteDataReader reader = this.sql_query(query);
             while (reader.Read()) {
-                var tup = Tuple.Create(reader["isbn"], reader["cover"]);
-                book_list.Add(tup);
+                Publication book = new Publication((string) reader["title"], "", "");
+                // book.ISBN = (string) reader["isbn"]
+                // book.dateAdded = (int) reader["date_added"];
+                // book.coverImage = (Image) reader["cover"];
+                book_list.Add(book);
             }
             return book_list;
         }
@@ -90,7 +93,7 @@ namespace BigData {
             SQLiteDataReader reader = this.sql_query(query);
             while (reader.Read()) {
                 // book.ISBN = (string) reader["title"];
-                book.title = (string) reader["title"];
+                book.title = (string) reader["isbn"];
                 // book.dateAdded = (int) reader["date_added"];
                 // book.coverImage = (Image) reader["cover"];
             }
