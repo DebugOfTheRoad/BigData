@@ -67,21 +67,13 @@ namespace BigData
             foreach (String number in oclcNumbers)
             {
                 String OCLCQueryURL = "http://www.worldcat.org/webservices/catalog/content/" + number + "?wskey=" + this.WSKey;
-                WebClient client = new WebClient();
-                string downloadString = client.DownloadString(OCLCQueryURL);
-                var array = downloadString.Split('\n');
-                String isbn = "";
-                for (int i = 0; i < array.Length; i++)
-                {
-                    if (array[i].Contains("tag=\"020\""))
-                    {
-                        var arr = (array[i+1]).Split('>');
-                        arr = arr[1].Split(' ');
-                        arr = arr[0].Split('<');
-                        isbn = arr[0];
-                        break;
-                    }
-                }
+                XmlDocument xmldoc = new System.Xml.XmlDocument();
+                xmldoc.Load(OCLCQueryURL);
+                XmlNamespaceManager xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
+                xmlnsManager.AddNamespace("default", "http://www.loc.gov/MARC21/slim");
+                XmlNode node = xmldoc.SelectSingleNode("//default:datafield[@tag='020']", xmlnsManager);
+                String[] arr = node.InnerText.Split(' '); // getting rid of extraneous text
+                String isbn = arr[0];
                 Image coverImage = getCover(isbn);
                 Publication toAdd = new Publication();
                 toAdd.oclcNumber = number;
@@ -110,41 +102,32 @@ namespace BigData
                     Console.WriteLine("hey we got a book cover!");
                     return webImage;
                 }
-                catch (WebException e)
-                {
-                    //Console.WriteLine("well, we didn't get one");
-                }
+                catch (WebException e) { }
             }
-
+            Console.WriteLine("failed to get book cover");
             return null;
-            
+
         }
 
         // Returns a list of related isbns using the xisbn api
         private List<String> getRelatedISBNs(String isbn)
         {
             List<String> toRet = new List<String>();
-            String xISBNQuery = "http://xisbn.worldcat.org/webservices/xid/isbn/" + isbn  + "?method=getEditions&format=xml";
+            String xISBNQuery = "http://xisbn.worldcat.org/webservices/xid/isbn/" + isbn + "?method=getEditions&format=xml";
 
             XmlDocument xmldoc = new System.Xml.XmlDocument();
             xmldoc.Load(xISBNQuery);
             XmlNamespaceManager xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
             xmlnsManager.AddNamespace("default", "http://worldcat.org/xid/isbn/");
 
-
             XmlNodeList isbnlist;
-
             isbnlist = xmldoc.SelectNodes("//default:isbn", xmlnsManager);
-
             foreach (XmlNode currentISBN in isbnlist)
             {
                 toRet.Add(currentISBN.InnerText);
             }
             return toRet;
-
+            
         }
-
-    
     }
-
 }
