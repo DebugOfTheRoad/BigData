@@ -4,6 +4,8 @@ using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using System.Xml.XPath;
+using System.Drawing;
 
 namespace BigData
 {
@@ -12,6 +14,7 @@ namespace BigData
     {
         string WSKey;
         XmlTextReader reader;
+
         public OCLCWrapper(string rssURL, string key, string secretKey )
         {
             reader = new XmlTextReader(rssURL);
@@ -61,17 +64,87 @@ namespace BigData
 
         private List<Publication> queryOCLC(string[] oclcNumbers)
         {
-            XmlReader pubReader;
             foreach (String number in oclcNumbers)
             {
                 String OCLCQueryURL = "http://www.worldcat.org/webservices/catalog/content/" + number + "?wskey=" + this.WSKey;
-                pubReader = new XmlTextReader(OCLCQueryURL);
-                //Console.WriteLine(pubReader.ToString());
-                String coverURL = "http://covers.openlibrary.org/b/oclc/" + number + "-L.jpg?default=false"; //problem: get isbn of normal book?
-                Console.WriteLine(coverURL);
+                WebClient client = new WebClient();
+                string downloadString = client.DownloadString(OCLCQueryURL);
+                var array = downloadString.Split('\n');
+                String isbn = "";
+                for (int i = 0; i < array.Length; i++)
+                {
+                    if (array[i].Contains("tag=\"020\""))
+                    {
+                        var arr = (array[i+1]).Split('>');
+                        arr = arr[1].Split(' ');
+                        arr = arr[0].Split('<');
+                        isbn = arr[0];
+                        break;
+                    }
+                }
+                Image coverImage = getCover(isbn);
+                Publication toAdd = new Publication();
+                toAdd.oclcNumber = number;
+                toAdd.isbn = isbn;
+                toAdd.coverImage = coverImage;
             }
+                 
             return new List<Publication>();
         }
+
+        private Image getCover(String isbn)
+        {
+            List<String> relatedISBNs = getRelatedISBNs(isbn);
+            relatedISBNs.Insert(0, isbn);
+            String coverURL;
+            WebClient client = new WebClient();
+            WebRequest requestPic;
+            foreach (String related in relatedISBNs)
+            {
+                coverURL = "http://covers.openlibrary.org/b/isbn/" + related + "-L.jpg?default=false";
+                requestPic = WebRequest.Create(coverURL);
+                try
+                {
+                    WebResponse responsePic = requestPic.GetResponse();
+                    Image webImage = Image.FromStream(responsePic.GetResponseStream());
+                    Console.WriteLine("hey we got a book cover!");
+                    return webImage;
+                }
+                catch (WebException e)
+                {
+                    //Console.WriteLine("well, we didn't get one");
+                }
+            }
+
+            return null;
+            
+        }
+
+        // Returns a list of related isbns using the xisbn api
+        private List<String> getRelatedISBNs(String isbn)
+        {
+            List<String> toRet = new List<String>();
+            String xISBNQuery = "http://xisbn.worldcat.org/webservices/xid/isbn/" + isbn  + "?method=getEditions&format=xml";
+
+            XmlDocument xmldoc = new System.Xml.XmlDocument();
+            xmldoc.Load(xISBNQuery);
+            XmlNamespaceManager xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
+            xmlnsManager.AddNamespace("default", "http://worldcat.org/xid/isbn/");
+
+
+            XmlNodeList isbnlist;
+
+            isbnlist = xmldoc.SelectNodes("//default:isbn", xmlnsManager);
+
+            foreach (XmlNode currentISBN in isbnlist)
+            {
+                toRet.Add(currentISBN.InnerText);
+            }
+            return toRet;
+
+        }
+
+    
     }
 
 }

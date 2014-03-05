@@ -12,7 +12,7 @@ namespace BigData {
         private SQLiteCommand sql_cmd;
         //private SQLiteDataAdapter db;
         private string rss_feed;
-        private string WSKey;
+        private string WSKey = "XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy";
         private string secretKey;
         
         public Database(string feed) {

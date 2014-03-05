@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 
 
 namespace BigData
@@ -11,8 +12,9 @@ namespace BigData
         public String link;
         public String desc;
         public String oclcNumber;
-        // public DateTime dateAdded;
-        // public Image coverImage;
+        public String isbn;
+        public DateTime dateAdded;
+        public Image coverImage;
 
         public Publication()
         {
