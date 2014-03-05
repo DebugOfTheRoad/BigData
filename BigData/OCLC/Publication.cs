@@ -36,5 +36,16 @@ namespace BigData
             this.link = link;
             this.desc = desc;
         }
+
+        public String printBook()
+        {
+            String image;
+            if (coverImage != null)
+                 image = "cover exists";
+            else image = "cover does not exist";
+
+            return "Publication:\nTitle:" + title + "\nISBN:" + isbn + "\nDescription: " + desc + "\nCover:" + image + "\n\n";
+
+        }
     }
 }

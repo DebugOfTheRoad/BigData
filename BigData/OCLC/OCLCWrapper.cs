@@ -64,6 +64,7 @@ namespace BigData
 
         private List<Publication> queryOCLC(string[] oclcNumbers)
         {
+            List<Publication> toRet = new List<Publication>();
             foreach (String number in oclcNumbers)
             {
                 String OCLCQueryURL = "http://www.worldcat.org/webservices/catalog/content/" + number + "?wskey=" + this.WSKey;
@@ -71,17 +72,47 @@ namespace BigData
                 xmldoc.Load(OCLCQueryURL);
                 XmlNamespaceManager xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
                 xmlnsManager.AddNamespace("default", "http://www.loc.gov/MARC21/slim");
-                XmlNode node = xmldoc.SelectSingleNode("//default:datafield[@tag='020']", xmlnsManager);
-                String[] arr = node.InnerText.Split(' '); // getting rid of extraneous text
-                String isbn = arr[0];
-                Image coverImage = getCover(isbn);
+                XmlNode isbnNode = xmldoc.SelectSingleNode("//default:datafield[@tag='020']", xmlnsManager);
+                String isbn, description, title;
+                if (isbnNode == null)
+                {
+                    isbn = "";
+                }
+                else
+                {
+                    String[] arr = isbnNode.InnerText.Split(' '); // getting rid of extraneous text
+                    isbn = arr[0];
+                }
+                XmlNode descNode = xmldoc.SelectSingleNode("//default:datafield[@tag='520']", xmlnsManager);
+                if (descNode == null)
+                {
+                    description = "";
+                }
+                else
+                {
+                    description = descNode.InnerText;
+                }
+                XmlNode titleNode = xmldoc.SelectSingleNode("//default:datafield[@tag='245']", xmlnsManager);
+                if (titleNode == null)
+                {
+                    title = "";
+                }
+                else
+                {
+                   title = titleNode.InnerText.Split('[')[0];
+
+                }
+
                 Publication toAdd = new Publication();
                 toAdd.oclcNumber = number;
                 toAdd.isbn = isbn;
-                toAdd.coverImage = coverImage;
+                toAdd.coverImage = getCover(isbn);
+                toAdd.title =  title;
+                toAdd.desc = description;
+                toRet.Add(toAdd);
+                Console.WriteLine(toAdd.printBook());
             }
-                 
-            return new List<Publication>();
+            return toRet;
         }
 
         private Image getCover(String isbn)
@@ -99,7 +130,6 @@ namespace BigData
                 {
                     WebResponse responsePic = requestPic.GetResponse();
                     Image webImage = Image.FromStream(responsePic.GetResponseStream());
-                    Console.WriteLine("hey we got a book cover!");
                     return webImage;
                 }
                 catch (WebException e) { }
