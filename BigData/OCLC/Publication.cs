@@ -7,14 +7,13 @@ namespace BigData
 {
     public class Publication
     {
-        //public String ISBN;
         public String title;
         public String link;
         public String desc;
         public String oclcNumber;
         public String isbn;
-        public DateTime dateAdded;
         public Image coverImage;
+        public String[] authors;
 
         public Publication()
         {
@@ -44,7 +43,13 @@ namespace BigData
                  image = "cover exists";
             else image = "cover does not exist";
 
-            return "Publication:\nTitle:" + title + "\nISBN:" + isbn + "\nDescription: " + desc + "\nCover:" + image + "\n\n";
+            String authorsString = (authors.Length == 1) ? "\nAuthor: " : "\nAuthors: ";
+            foreach (String author in authors)
+            {
+                authorsString += author + ", ";
+            }
+            authorsString = authorsString.Substring(0, authorsString.Length - 2);
+            return "Publication:\nTitle: " + title + authorsString +  "\nISBN: " + isbn + "\nDescription: " + desc + "\nCover: " + image + "\n\n";
 
         }
     }

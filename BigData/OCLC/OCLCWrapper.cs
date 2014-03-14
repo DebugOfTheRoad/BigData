@@ -73,35 +73,29 @@ namespace BigData
                 XmlNamespaceManager xmlnsManager = new XmlNamespaceManager(xmldoc.NameTable);
                 xmlnsManager.AddNamespace("default", "http://www.loc.gov/MARC21/slim");
                 XmlNode isbnNode = xmldoc.SelectSingleNode("//default:datafield[@tag='020']", xmlnsManager);
-                String isbn, description, title;
-                if (isbnNode == null)
-                {
-                    isbn = "";
-                }
-                else
-                {
-                    String[] arr = isbnNode.InnerText.Split(' '); // getting rid of extraneous text
-                    isbn = arr[0];
-                }
                 XmlNode descNode = xmldoc.SelectSingleNode("//default:datafield[@tag='520']", xmlnsManager);
-                if (descNode == null)
-                {
-                    description = "";
-                }
-                else
-                {
-                    description = descNode.InnerText;
-                }
                 XmlNode titleNode = xmldoc.SelectSingleNode("//default:datafield[@tag='245']", xmlnsManager);
-                if (titleNode == null)
+                XmlNode authorNode = xmldoc.SelectSingleNode("//default:datafield[@tag='100']", xmlnsManager); // code 100 is used for 1 author
+                XmlNodeList authorsNodes = xmldoc.SelectNodes("//default:datafield[@tag='700'][./subfield[@code='a']]", xmlnsManager); // code 700 is used for multiple authors
+
+                String isbn, description, title;
+                isbn = (isbnNode != null) ? isbnNode.InnerText.Split(' ')[0] : "";
+                description = (descNode != null) ? descNode.InnerText : "";
+                title = (titleNode != null) ? titleNode.InnerText.Split('[')[0] : "";
+                String[] authors = (authorNode != null) ? new string[] { authorNode.InnerText } : null ;
+                if (authors == null)
                 {
-                    title = "";
-                }
-                else
-                {
-                   title = titleNode.InnerText.Split('[')[0];
+                    authors = new string[authorsNodes.Count];
+                    Console.WriteLine(authorsNodes.Count);
+                    int i = 0;
+                    foreach (XmlNode node in authorsNodes)
+                    {
+                        authors[i] = node.InnerText;
+                        i++;
+                    }
 
                 }
+
 
                 Publication toAdd = new Publication();
                 toAdd.oclcNumber = number;
@@ -109,6 +103,7 @@ namespace BigData
                 toAdd.coverImage = getCover(isbn);
                 toAdd.title =  title;
                 toAdd.desc = description;
+                toAdd.authors = authors;
                 toRet.Add(toAdd);
                 Console.WriteLine(toAdd.printBook());
             }
@@ -132,7 +127,9 @@ namespace BigData
                     Image webImage = Image.FromStream(responsePic.GetResponseStream());
                     return webImage;
                 }
-                catch (WebException e) { }
+                catch (WebException e) {
+                   // Console.WriteLine("didn't get cover");
+                }
             }
             Console.WriteLine("failed to get book cover");
             return null;
