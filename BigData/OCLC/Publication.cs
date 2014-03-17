@@ -13,7 +13,7 @@ namespace BigData
         public String oclcNumber;
         public String isbn;
         public Image coverImage;
-        public String[] authors;
+        public List<String> authors;
 
         public Publication()
         {
@@ -43,13 +43,13 @@ namespace BigData
                  image = "cover exists";
             else image = "cover does not exist";
 
-            String authorsString = (authors.Length == 1) ? "\nAuthor: " : "\nAuthors: ";
+            String authorsString = (authors.Count == 1) ? "\nAuthor: " : "\nAuthors: ";
             foreach (String author in authors)
             {
                 authorsString += author + ", ";
             }
             authorsString = authorsString.Substring(0, authorsString.Length - 2);
-            return "Publication:\nTitle: " + title + authorsString +  "\nISBN: " + isbn + "\nDescription: " + desc + "\nCover: " + image + "\n\n";
+            return "Publication:\nTitle: " + title + authorsString +  "\nISBN: " + isbn + "\nAccess URL:" + link +  "\nDescription: " + desc + "\nCover: " + image + "\n\n";
 
         }
     }

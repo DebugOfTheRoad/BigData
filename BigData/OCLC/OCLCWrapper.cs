@@ -76,24 +76,26 @@ namespace BigData
                 XmlNode descNode = xmldoc.SelectSingleNode("//default:datafield[@tag='520']", xmlnsManager);
                 XmlNode titleNode = xmldoc.SelectSingleNode("//default:datafield[@tag='245']", xmlnsManager);
                 XmlNode authorNode = xmldoc.SelectSingleNode("//default:datafield[@tag='100']", xmlnsManager); // code 100 is used for 1 author
-                XmlNodeList authorsNodes = xmldoc.SelectNodes("//default:datafield[@tag='700'][./subfield[@code='a']]", xmlnsManager); // code 700 is used for multiple authors
+                XmlNodeList authorsNodes = xmldoc.SelectNodes("//default:datafield[@tag='700']", xmlnsManager); // code 700 is used for multiple authors
+                XmlNode accessNode = xmldoc.SelectSingleNode("//default:datafield[@tag='856']", xmlnsManager); 
 
-                String isbn, description, title;
+                String isbn, description, title, accessURL;
                 isbn = (isbnNode != null) ? isbnNode.InnerText.Split(' ')[0] : "";
                 description = (descNode != null) ? descNode.InnerText : "";
                 title = (titleNode != null) ? titleNode.InnerText.Split('[')[0] : "";
-                String[] authors = (authorNode != null) ? new string[] { authorNode.InnerText } : null ;
-                if (authors == null)
+                accessURL = (accessNode != null) ? accessNode.InnerText : "";
+                List<String> authors = new List<String>();
+                if (authorNode == null)
                 {
-                    authors = new string[authorsNodes.Count];
-                    Console.WriteLine(authorsNodes.Count);
-                    int i = 0;
                     foreach (XmlNode node in authorsNodes)
                     {
-                        authors[i] = node.InnerText;
-                        i++;
+                        authors.Add(node.InnerText);
                     }
 
+                }
+                else
+                {
+                    authors.Add(authorNode.InnerText);
                 }
 
 
@@ -104,6 +106,7 @@ namespace BigData
                 toAdd.title =  title;
                 toAdd.desc = description;
                 toAdd.authors = authors;
+                toAdd.link = accessURL;
                 toRet.Add(toAdd);
                 Console.WriteLine(toAdd.printBook());
             }
@@ -125,6 +128,7 @@ namespace BigData
                 {
                     WebResponse responsePic = requestPic.GetResponse();
                     Image webImage = Image.FromStream(responsePic.GetResponseStream());
+                    //webImage.Save("C:\\Users\\Daniel A. Eshleman\\Desktop\\" + related + ".png"); // for debugging
                     return webImage;
                 }
                 catch (WebException e) {
