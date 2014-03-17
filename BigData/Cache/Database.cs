@@ -26,10 +26,17 @@ namespace BigData {
             string create_table = "CREATE TABLE Publications(" +
                                   "isbn TEXT PRIMARY KEY, " +
                                   "title TEXT, " +
+                                  "link TEXT, " +
+                                  "desc TEXT, " + 
                                   "date_added INT, " +
                                   "cover BLOB" +
                                   ")";
+            string create_table2 = "CREATE TABLE Authors(" +
+                                   "isbn TEXT, " +
+                                   "author TEXT" +
+                                   ")";
             this.sql_command(create_table);
+            this.sql_command(create_table2);
             this.update_db();
         }
         
@@ -39,14 +46,26 @@ namespace BigData {
 
             string insert_query;
             for (int i = 0; i < pub_list.Count; i++) {
+                // Insert publication
                 insert_query =  "INSERT INTO Publications VALUES (" + 
-                                "\"" + i + "\", " + 
+                                "\"" + pub_list[i].isbn + "\", " + 
                                 "\"" + pub_list[i].title + "\", " +
-                                "1234" + ", " +
+                                "\"" + pub_list[i].link + "\", " +
+                                "\"" + pub_list[i].desc + "\", " +
+                                //"\"" + pub_list[i].dateAdded + "\", " +
+                                "0, " +
                                 "\"" + "deadbeef" + "\"" +
                                 ");";
-                Console.WriteLine(insert_query);
                 this.sql_command(insert_query);
+                
+                // Insert authors
+                for (int j = 0; j < pub_list[i].authors.Count; j++) {
+                    insert_query = "INSERT INTO Authors VALUES (" +
+                                   "\"" + pub_list[i].isbn + "\", " +
+                                   "\"" + pub_list[i].authors[j] + "\"" +
+                                   ");";
+                    this.sql_command(insert_query);
+                }
             }
         }
 
@@ -73,15 +92,24 @@ namespace BigData {
             return s;
         }
 
-        public ArrayList get_new_books(int date) {
+        public ArrayList get_all_books() {
             ArrayList book_list = new ArrayList();
+            int date = 0;
             string query = "SELECT * FROM Publications WHERE date_added >= " + date + ";";
             SQLiteDataReader reader = this.sql_query(query);
             while (reader.Read()) {
                 Publication book = new Publication((string) reader["title"], "", "");
-                // book.ISBN = (string) reader["isbn"]
-                // book.dateAdded = (int) reader["date_added"];
-                // book.coverImage = (Image) reader["cover"];
+                book.isbn = (string) reader["isbn"];
+                //book.dateAdded = (int) reader["date_added"];
+                //book.coverImage = (Image) reader["cover"];
+
+                // Get the authors
+                query = "SELECT author FROM Authors WHERE isbn = \"" + book.isbn + "\";";
+                SQLiteDataReader author_reader = this.sql_query(query);
+                while (author_reader.Read()) {
+                    book.authors.Add((string)reader["author"]);
+                }
+
                 book_list.Add(book);
             }
             return book_list;
