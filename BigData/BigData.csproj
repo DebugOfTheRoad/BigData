@@ -71,6 +71,7 @@
     <Compile Include="MainWindow.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="OCLC\Client.cs" />
     <Compile Include="OCLC\OCLCWrapper.cs" />
     <Compile Include="OCLC\Publication.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

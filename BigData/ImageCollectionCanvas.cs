@@ -12,28 +12,19 @@ namespace BigData
 {
     class ImageCollectionCanvas : Canvas
     {
-        public ImageCollectionCanvas(Image[] images)
+        public ImageCollectionCanvas(IEnumerable<Image> images)
         {
+            this.images = images.ToArray();
             this.LayoutUpdated += LayoutImages;
-
-            foreach (Image im in images)
-            {
-                this.Children.Add(im);
-            }
         }
 
         private void LayoutImages(object sender, EventArgs e)
         {
             double horizontalOffset = -1000;
             double verticalOffset = 0;
-            foreach (var child in this.Children)
+            foreach (var image in images)
             {
-                if (!(child is Image))
-                {
-                    throw new Exception("ImageCollectionCanvas should not have a child of type " + child.GetType().ToString());
-                }
-
-                var image = (Image)child;
+                if (!Children.Contains(image)) Children.Add(image);
                 image.Height = this.ActualHeight / 3;
 
                 SetTop(image, verticalOffset);
@@ -50,14 +41,5 @@ namespace BigData
         }
 
         private Image[] images;
-
-        public static Image CatcherInTheRye()
-        {
-            var image = new Image();
-            image.Source = new BitmapImage(
-                new Uri(@"pack://application:,,,/Resources/catcher.jpg", UriKind.RelativeOrAbsolute)
-                );
-            return image;
-        }
     }
 }

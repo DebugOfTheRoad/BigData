@@ -7,14 +7,23 @@ using System.Xml.Linq;
 using System.Xml.XPath;
 using System.Drawing;
 
+/*
 namespace BigData
 {
-
+    /// <summary>
+    /// Manage access to the OCLC APIs.
+    /// </summary>
     public class OCLCWrapper
     {
         string WSKey;
         XmlTextReader reader;
 
+        /// <summary>
+        /// Initialize API 
+        /// </summary>
+        /// <param name="rssURL"></param>
+        /// <param name="key"></param>
+        /// <param name="secretKey"></param>
         public OCLCWrapper(string rssURL, string key, string secretKey )
         {
             reader = new XmlTextReader(rssURL);
@@ -45,7 +54,7 @@ namespace BigData
 
         /*
          * Parses the OCLC numbers out of the RSS xml
-         */
+         
         private  string[] getOCLCNumbers(XDocument xdoc)
         {
             var q = from b in xdoc.Descendants("item")
@@ -162,3 +171,4 @@ namespace BigData
         }
     }
 }
+*/

@@ -1,56 +1,95 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-
+using System.Linq;
+using System.Xml.Linq;
+using System.Windows.Media.Imaging;
 
 namespace BigData
 {
     public class Publication
     {
-        public String title;
-        public String link;
-        public String desc;
-        public String oclcNumber;
-        public String isbn;
-        public Image coverImage;
-        public List<String> authors;
-
-        public Publication()
+        public static Publication FromXML(XDocument doc)
         {
-            title = "";
-            link = "";
-            desc = "";
-            oclcNumber = "";
+            var pub = new Publication();
+            pub.Title = GetOCLCFieldByTag(titleTag, doc);
+            pub.Description = GetOCLCFieldByTag(descTag, doc);
+            pub.ISBNs = GetOCLCFieldsByTag(isbnTag, doc);
+
+            var firstAuthor = GetOCLCFieldByTag(authorTag, doc);
+            var allAuthors = GetOCLCFieldsByTag(authorsTag, doc);
+            allAuthors.Insert(0, firstAuthor);
+            pub.Authors = allAuthors;
+
+
+            return pub;
         }
 
-        public Publication(String number)
+        public override string ToString()
         {
-            this.oclcNumber = number;
-            
+            return String.Format("BigData.Publication<Title: {0}, ISBN: {1}>", this.Title, this.ISBNs.First());
         }
 
-        public Publication(String title, String link, String desc)
+        public string Title
         {
-            this.title = title;
-            this.link = link;
-            this.desc = desc;
-        }
-
-        public String printBook()
-        {
-            String image;
-            if (coverImage != null)
-                 image = "cover exists";
-            else image = "cover does not exist";
-
-            String authorsString = (authors.Count == 1) ? "\nAuthor: " : "\nAuthors: ";
-            foreach (String author in authors)
+            get { return title; }
+            set
             {
-                authorsString += author + ", ";
+                var ti = new System.Globalization.CultureInfo("en-US").TextInfo;
+                title = ti.ToTitleCase(value);
             }
-            authorsString = authorsString.Substring(0, authorsString.Length - 2);
-            return "Publication:\nTitle: " + title + authorsString +  "\nISBN: " + isbn + "\nAccess URL:" + link +  "\nDescription: " + desc + "\nCover: " + image + "\n\n";
-
         }
+
+        public string OCLCNumber { get; set; }
+        public string Description { get; set; }
+        public List<string> Authors { get; set; }
+        public BitmapImage CoverImage { get; set; }
+
+        public List<string> ISBNs
+        {
+            get { return isbns; }
+            set
+            {
+                isbns = (from isbn in value
+                         where isbn != null
+                         select isbn.Split(new char[] { ' ' }, 2).First())
+                         .ToList();
+            }
+        }
+
+        private static string GetOCLCFieldByTag(string tag, XDocument doc)
+        {
+            XNamespace ns = @"http://www.loc.gov/MARC21/slim";
+            try
+            {
+                return (from datafield in doc.Descendants(ns + "datafield")
+                        where datafield.Attribute("tag").Value.Equals(tag)
+                        select datafield.Descendants().First().Value)
+                        .First();
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
+        private static List<string> GetOCLCFieldsByTag(string tag, XDocument doc)
+        {
+            XNamespace ns = @"http://www.loc.gov/MARC21/slim";
+            return (from datafield in doc.Descendants(ns + "datafield")
+                    where datafield.Attribute("tag").Value.Equals(tag)
+                    select datafield.Descendants().First().Value)
+                    .ToList();
+        }
+
+        private List<string> isbns;
+        private string title;
+
+        private const string formTag = "655";
+        private const string authorTag = "100";
+        private const string authorsTag = "700";
+        private const string isbnTag = "020";
+        private const string descTag = "520";
+        private const string contentsTag = "505";
+        private const string titleTag = "245";
     }
 }

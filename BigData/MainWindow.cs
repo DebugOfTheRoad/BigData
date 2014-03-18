@@ -41,37 +41,11 @@ namespace BigData
             this.MouseUp += this.RestartAnimation;
             this.MouseDown += this.OnClick;
 
-            canvas = new ImageCollectionCanvas(new Image[]{
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-            });
+            var publications = App.GetOCLCClient().FetchPublicationsFromRSS(App.PublicationListUri);
+            var images = from pub in publications
+                         select new Image { Source = pub.CoverImage };
+
+            canvas = new ImageCollectionCanvas(images);
             this.Content = canvas;
 
             //image = new Image();

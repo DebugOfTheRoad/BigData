@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BigData;
 
+/*
 namespace TestBigData
 {
     class TestAPI : Test
@@ -28,3 +29,4 @@ namespace TestBigData
         }
     }
 }
+ */
