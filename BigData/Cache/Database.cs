@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
+using System.Drawing;
+using System.IO;
 
 namespace BigData {
     public class Database {
@@ -52,12 +54,17 @@ namespace BigData {
                                 "\"" + pub_list[i].title + "\", " +
                                 "\"" + pub_list[i].link + "\", " +
                                 "\"" + pub_list[i].desc + "\", " +
-                                //"\"" + pub_list[i].dateAdded + "\", " +
+                                //"\"" + pub_list[i].dateAdded + "\", " + 
                                 "0, " +
-                                "\"" + "deadbeef" + "\"" +
+                                "(@cover)" +
                                 ");";
-                this.sql_command(insert_query);
                 
+                // Adding cover to query
+                byte[] cover = image_to_byte_array(pub_list[i].coverImage);
+                sql_cmd = new SQLiteCommand(insert_query, sql_con);
+                sql_cmd.Parameters.Add(new SQLiteParameter("@cover", cover));
+                sql_cmd.ExecuteNonQuery();
+           
                 // Insert authors
                 for (int j = 0; j < pub_list[i].authors.Count; j++) {
                     insert_query = "INSERT INTO Authors VALUES (" +
@@ -78,6 +85,13 @@ namespace BigData {
             sql_cmd = new SQLiteCommand(query, sql_con);
             SQLiteDataReader reader = sql_cmd.ExecuteReader();
             return reader;
+        }
+
+        private static byte[] image_to_byte_array(Image img) {
+            using (var ms = new MemoryStream()) {
+                img.Save(ms,System.Drawing.Imaging.ImageFormat.Gif);
+                return  ms.ToArray();
+            }
         }
 
         public string print_all() {
@@ -101,7 +115,10 @@ namespace BigData {
                 Publication book = new Publication((string) reader["title"], "", "");
                 book.isbn = (string) reader["isbn"];
                 //book.dateAdded = (int) reader["date_added"];
-                //book.coverImage = (Image) reader["cover"];
+                
+                // Get the cover
+                MemoryStream ms = new MemoryStream((byte[]) reader["cover"]);
+                book.coverImage = Image.FromStream(ms);
 
                 // Get the authors
                 query = "SELECT author FROM Authors WHERE isbn = \"" + book.isbn + "\";";
