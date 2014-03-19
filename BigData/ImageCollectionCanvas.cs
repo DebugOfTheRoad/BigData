@@ -32,7 +32,7 @@ namespace BigData
 
                 horizontalOffset += image.ActualWidth;
 
-                if (horizontalOffset > 1000)
+                if (horizontalOffset > 1440)
                 {
                     horizontalOffset = 0;
                     verticalOffset += image.ActualHeight;
