@@ -14,25 +14,25 @@ namespace BigData.OCLC
     /// <summary>
     /// Manage access to the OCLC APIs.
     /// </summary>
-    public class Client
+    public class Client : PublicationSource
     {
         /// <summary>
         /// Create a new OCLCClient.
         /// </summary>
         /// <param name="key">The WSKey to use to access OCLC APIs</param>
-        public Client(string key)
+        public Client(string key, string feedUri)
         {
             WSKey = key;
+            FeedUri = feedUri;
         }
 
         /// <summary>
-        /// Return a list of publications described by the RSS document at <c>feedUri</c>.
+        /// Fetch publications from OCLC RSS
         /// </summary>
-        /// <param name="feedUri"></param>
-        /// <returns>A list of publications</returns>
-        public Publication[] FetchPublicationsFromRSS(string feedUri)
+        /// <returns>An array of publications from the OCLC RSS API</returns>
+        public IEnumerable<Publication> GetPublications()
         {
-            var doc = XDocument.Load(feedUri);
+            var doc = XDocument.Load(FeedUri);
             var tasks = from item in doc.Descendants("item")
                         let uri = new Uri(item.Element("link").Value)
                         let oclcNum = uri.Segments.Last()
@@ -46,6 +46,11 @@ namespace BigData.OCLC
         /// Web Services key needed to access OCLC APIs
         /// </summary>
         public string WSKey { get; set; }
+
+        /// <summary>
+        /// The RSS feed URI from which to fetch publications
+        /// </summary>
+        public string FeedUri { get; set; }
 
         private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber)
         {

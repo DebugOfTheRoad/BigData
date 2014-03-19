@@ -42,7 +42,8 @@ namespace BigData
             this.TouchDown += MainWindow_TouchDown;
             this.TouchMove += MainWindow_TouchMove;
 
-            var publications = App.GetOCLCClient().FetchPublicationsFromRSS(App.PublicationListUri);
+            OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+            var publications = src.GetPublications();
             var images = from pub in publications
                          select new Image { Source = pub.CoverImage };
 
