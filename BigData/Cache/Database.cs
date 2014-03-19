@@ -88,10 +88,9 @@ namespace BigData {
         }
 
         private static byte[] image_to_byte_array(Image img) {
-            using (var ms = new MemoryStream()) {
-                img.Save(ms,System.Drawing.Imaging.ImageFormat.Gif);
-                return  ms.ToArray();
-            }
+            MemoryStream ms = new MemoryStream();
+            img.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
+            return  ms.ToArray();
         }
 
         public string print_all() {
