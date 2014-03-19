@@ -26,7 +26,7 @@ namespace BigData {
         
         public void create_db() {
             string create_table = "CREATE TABLE Publications(" +
-                                  "isbn TEXT PRIMARY KEY, " +
+                                  "isbn TEXT, " +
                                   "title TEXT, " +
                                   "link TEXT, " +
                                   "desc TEXT, " + 
@@ -64,7 +64,10 @@ namespace BigData {
                 sql_cmd = new SQLiteCommand(insert_query, sql_con);
                 sql_cmd.Parameters.Add(new SQLiteParameter("@cover", cover));
                 sql_cmd.ExecuteNonQuery();
-           
+
+                // Dan is gon learn today... bout this long dick
+                if (pub_list[i].authors == null) continue;
+
                 // Insert authors
                 for (int j = 0; j < pub_list[i].authors.Count; j++) {
                     insert_query = "INSERT INTO Authors VALUES (" +
@@ -88,9 +91,13 @@ namespace BigData {
         }
 
         private static byte[] image_to_byte_array(Image img) {
-            MemoryStream ms = new MemoryStream();
-            img.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
-            return  ms.ToArray();
+            try {
+                MemoryStream ms = new MemoryStream();
+                img.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
+                return ms.ToArray();
+            } catch (NullReferenceException e) {
+                return new byte[0];
+            }
         }
 
         public string print_all() {
