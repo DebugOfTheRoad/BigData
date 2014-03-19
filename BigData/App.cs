@@ -22,6 +22,6 @@ namespace BigData
             return new OCLC.Client(@"XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy");
         }
 
-        public const string PublicationListUri = @"https://bucknell.worldcat.org/profiles/danieleshleman/lists/3234701/rss";
+        public const string PublicationListUri = @"https://bucknell.worldcat.org/profiles/danieleshleman/lists/3234701/rss?count=2000";
     }
 }
