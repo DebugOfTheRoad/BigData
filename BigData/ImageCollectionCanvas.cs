@@ -20,12 +20,12 @@ namespace BigData
 
         private void LayoutImages(object sender, EventArgs e)
         {
-            double horizontalOffset = -1000;
+            double horizontalOffset = 0;
             double verticalOffset = 0;
             foreach (var image in images)
             {
                 if (!Children.Contains(image)) Children.Add(image);
-                image.Height = this.ActualHeight / 3;
+                image.Height = 300;
 
                 SetTop(image, verticalOffset);
                 SetLeft(image, horizontalOffset);
@@ -34,7 +34,7 @@ namespace BigData
 
                 if (horizontalOffset > 1000)
                 {
-                    horizontalOffset = -1000;
+                    horizontalOffset = 0;
                     verticalOffset += image.ActualHeight;
                 }
             }

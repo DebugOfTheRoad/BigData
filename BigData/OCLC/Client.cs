@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Net;
 using System.Windows.Media.Imaging;
+using System.IO;
 
 namespace BigData.OCLC
 {
@@ -28,13 +30,16 @@ namespace BigData.OCLC
         /// </summary>
         /// <param name="feedUri"></param>
         /// <returns>A list of publications</returns>
-        public IEnumerable<Publication> FetchPublicationsFromRSS(string feedUri)
+        public Publication[] FetchPublicationsFromRSS(string feedUri)
         {
             var doc = XDocument.Load(feedUri);
-            return from item in doc.Descendants("item")
-                   let uri = new Uri(item.Element("link").Value)
-                   let oclcNum = uri.Segments.Last()
-                   select FetchPublicationFromOCLCNumber(oclcNum);
+            var tasks = from item in doc.Descendants("item")
+                        let uri = new Uri(item.Element("link").Value)
+                        let oclcNum = uri.Segments.Last()
+                        select FetchPublicationFromOCLCNumber(oclcNum);
+
+            var allTask = Task.WhenAll(tasks);
+            return allTask.Result;
         }
 
         /// <summary>
@@ -42,56 +47,82 @@ namespace BigData.OCLC
         /// </summary>
         public string WSKey { get; set; }
 
-        private Publication FetchPublicationFromOCLCNumber(string oclcNumber)
+        private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber)
         {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
             var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
-            var doc = XDocument.Load(queryURI);
 
+            var request = WebRequest.Create(queryURI);
+            var response = await request.GetResponseAsync();
+
+            var doc = XDocument.Load(response.GetResponseStream());
             var pub = Publication.FromXML(doc);
             pub.OCLCNumber = oclcNumber;
-            pub.CoverImage = CoverImageForISBNs(FetchRelatedISBNs(pub.ISBNs.First()));
+
+            var allISBNs = await FetchRelatedISBNs(pub.ISBNs);
+            pub.CoverImage = CoverImageForISBNs(allISBNs);
 
             return pub;
         }
 
-        private IEnumerable<string> FetchRelatedISBNs(string isbn)
+        private async Task<string[]> FetchRelatedISBNs(IEnumerable<string> isbns)
         {
-            var baseUri = @"http://xisbn.worldcat.org/webservices/xid/isbn/";
-            var queryUri = baseUri + isbn + @"?method=getEditions&format=xml";
+            var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/isbn/");
 
-            var doc = XDocument.Load(queryUri);
+            var requestUri = new Uri(baseUri, isbns.First() + @"?method=getEditions&format=xml");
+
+            var request = WebRequest.Create(requestUri);
             XNamespace ns = @"http://worldcat.org/xid/isbn/";
-
-            return from tag in doc.Descendants(ns + "isbn")
-                   select tag.Value;
+            try
+            {
+                var response = await request.GetResponseAsync();
+                var doc = XDocument.Load(response.GetResponseStream());
+                return (from tag in doc.Descendants(ns + "isbn")
+                        select tag.Value)
+                       .Concat(isbns)
+                       .Distinct()
+                       .ToArray();
+            }
+            catch (WebException)
+            {
+                return isbns.ToArray();
+            }
         }
 
-        private BitmapImage CoverImageForISBNs(IEnumerable<string> isbns)
+        private BitmapImage CoverImageForISBNs(string[] isbns)
         {
-            foreach (var isbn in isbns)
-            {
-                var queryString = @"http://covers.openlibrary.org/b/isbn/" + isbn + @"-L.jpg?default=false";
-                var request = WebRequest.Create(queryString);
+            var baseUri = new Uri(@"http://covers.openlibrary.org/b/isbn/");
+            var requestUris = (from isbn in isbns
+                              select new Uri(baseUri, isbn + @"-L.jpg?default=false"))
+                              .ToList();
 
+            // make sure there is always one good URI
+            requestUris.Add(new Uri(@"http://placehold.it/250x400"));
+
+            foreach (var uri in requestUris)
+            {
+                var request = WebRequest.Create(uri);
                 try
                 {
                     var response = request.GetResponse();
+
+                    var ms = new MemoryStream();
+                    response.GetResponseStream().CopyTo(ms);
+                    ms.Seek(0, SeekOrigin.Begin);
+
                     var image = new BitmapImage();
                     image.BeginInit();
-                    image.StreamSource = response.GetResponseStream();
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.StreamSource = ms;
                     image.EndInit();
+                    image.Freeze();
 
-                    Console.WriteLine("Got image for ISBN " + isbn);
-                    return image;
+                    if (image.PixelHeight >= 300) return image;
                 }
-                catch (WebException ex)
-                {
-                    Console.Error.WriteLine(ex.Message);
-                }
+                catch (WebException) { }
             }
 
-            return null;
+            throw new Exception("No cover images");
         }
     }
 }
