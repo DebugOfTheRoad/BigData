@@ -18,7 +18,6 @@ namespace BigData
 {
     public class MainWindow : Window
     {
-        private Canvas canvas;
         private Storyboard storyboard;
         private DoubleAnimation animation;
         private double mouseDragStart;
@@ -41,20 +40,26 @@ namespace BigData
             this.MouseDown += this.OnClick;
             this.TouchDown += MainWindow_TouchDown;
             this.TouchMove += MainWindow_TouchMove;
+            this.Loaded += MainWindow_Loaded;
+        }
 
+        async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
             OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
-            var publications = src.GetPublications();
+            //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
+            var publications = await src.GetPublications();
+
             var images = from pub in publications
                          select new Image { Source = pub.CoverImage };
 
-            canvas = new ImageCollectionCanvas(images);
+            var canvas = new ImageCollectionCanvas() { TileWidth = this.Width * 2, Images = images.ToArray() };
             this.Content = canvas;
 
             NameScope.SetNameScope(this, new NameScope());
             canvas.RenderTransform = new TranslateTransform();
             RegisterName("transform", canvas.RenderTransform);
 
-            animation = new DoubleAnimation(0, 1440, new Duration(TimeSpan.FromSeconds(120)));
+            animation = new DoubleAnimation(0, this.Width, new Duration(TimeSpan.FromSeconds(120)));
             Storyboard.SetTargetName(animation, "transform");
             Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
 
@@ -67,7 +72,7 @@ namespace BigData
         {
             storyboard.Pause(this);
 
-            var percent = (e.GetTouchPoint(this).Position.X - mouseDragStart + imageDragStart) / 1440;
+            var percent = (e.GetTouchPoint(this).Position.X - mouseDragStart + imageDragStart) / this.Width;
             var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
             if (seekTo < 0) { seekTo = 0; }
             storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);
@@ -77,14 +82,14 @@ namespace BigData
         {
             storyboard.Pause(this);
             mouseDragStart = e.GetTouchPoint(this).Position.X;
-            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * 1440;
+            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
         }
 
         private void OnClick(object sender, MouseEventArgs args)
         {
             storyboard.Pause(this);
             mouseDragStart = args.GetPosition(this).X;
-            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * 1440;
+            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
         }
 
         private void RestartAnimation(object sender, MouseEventArgs args)
@@ -98,7 +103,7 @@ namespace BigData
 
             storyboard.Pause(this);
 
-            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / 1440;
+            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / this.Width;
             var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
             if (seekTo < 0) { seekTo = 0; }
             storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);

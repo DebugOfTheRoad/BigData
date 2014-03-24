@@ -8,6 +8,6 @@ namespace BigData.OCLC
 {
     interface PublicationSource
     {
-        IEnumerable<Publication> GetPublications();
+        Task<IEnumerable<Publication>> GetPublications();
     }
 }

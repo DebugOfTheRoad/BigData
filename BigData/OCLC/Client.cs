@@ -30,7 +30,7 @@ namespace BigData.OCLC
         /// Fetch publications from OCLC RSS
         /// </summary>
         /// <returns>An array of publications from the OCLC RSS API</returns>
-        public IEnumerable<Publication> GetPublications()
+        public async Task<IEnumerable<Publication>> GetPublications()
         {
             var doc = XDocument.Load(FeedUri);
             var tasks = from item in doc.Descendants("item")
@@ -38,8 +38,7 @@ namespace BigData.OCLC
                         let oclcNum = uri.Segments.Last()
                         select FetchPublicationFromOCLCNumber(oclcNum);
 
-            var allTask = Task.WhenAll(tasks);
-            return allTask.Result;
+            return await Task.WhenAll(tasks);
         }
 
         /// <summary>

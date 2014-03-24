@@ -12,34 +12,35 @@ namespace BigData
 {
     class ImageCollectionCanvas : Canvas
     {
-        public ImageCollectionCanvas(IEnumerable<Image> images)
+        public ImageCollectionCanvas()
         {
-            this.images = images.ToArray();
             this.LayoutUpdated += LayoutImages;
         }
 
+        public Image[] Images { get; set; }
+        public double TileWidth { get; set; }
+
         private void LayoutImages(object sender, EventArgs e)
         {
-            double horizontalOffset = 0;
+            double horizontalOffset = -TileWidth/2;
             double verticalOffset = 0;
-            foreach (var image in images)
+            foreach (var image in Images)
             {
                 if (!Children.Contains(image)) Children.Add(image);
-                image.Height = 300;
 
+                image.Height = 300;
                 SetTop(image, verticalOffset);
                 SetLeft(image, horizontalOffset);
 
                 horizontalOffset += image.ActualWidth;
 
-                if (horizontalOffset > 1440)
+                if (horizontalOffset > TileWidth/2)
                 {
-                    horizontalOffset = 0;
+                    horizontalOffset = -TileWidth/2;
                     verticalOffset += image.ActualHeight;
                 }
             }
         }
-
-        private Image[] images;
+        
     }
 }
