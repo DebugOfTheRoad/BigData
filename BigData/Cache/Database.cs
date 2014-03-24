@@ -8,6 +8,7 @@ using System.Data.SQLite;
 using System.Drawing;
 using System.IO;
 
+/*
 namespace BigData {
     public class Database {
         private SQLiteConnection sql_con;
@@ -156,3 +157,4 @@ namespace BigData {
         }
     }
 }
+ */

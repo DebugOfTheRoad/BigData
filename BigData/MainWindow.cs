@@ -18,8 +18,6 @@ namespace BigData
 {
     public class MainWindow : Window
     {
-        private Canvas canvas;
-        private Image image;
         private Storyboard storyboard;
         private DoubleAnimation animation;
         private double mouseDragStart;
@@ -40,49 +38,28 @@ namespace BigData
             this.MouseMove += this.SeekToMouse;
             this.MouseUp += this.RestartAnimation;
             this.MouseDown += this.OnClick;
+            this.TouchDown += MainWindow_TouchDown;
+            this.TouchMove += MainWindow_TouchMove;
+            this.Loaded += MainWindow_Loaded;
+        }
 
-            canvas = new ImageCollectionCanvas(new Image[]{
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-                ImageCollectionCanvas.CatcherInTheRye(),
-            });
+        async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+            //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
+            var publications = await src.GetPublications();
+
+            var images = from pub in publications
+                         select new Image { Source = pub.CoverImage };
+
+            var canvas = new ImageCollectionCanvas() { TileWidth = this.Width * 2, Images = images.ToArray() };
             this.Content = canvas;
-
-            //image = new Image();
-            //image.Source = RenderArtwork();
-            //canvas.Children.Add(image);
 
             NameScope.SetNameScope(this, new NameScope());
             canvas.RenderTransform = new TranslateTransform();
             RegisterName("transform", canvas.RenderTransform);
 
-            animation = new DoubleAnimation(0, 1440, new Duration(TimeSpan.FromSeconds(60)));
+            animation = new DoubleAnimation(0, this.Width, new Duration(TimeSpan.FromSeconds(120)));
             Storyboard.SetTargetName(animation, "transform");
             Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
 
@@ -91,84 +68,28 @@ namespace BigData
             storyboard.Begin(this, true);
         }
 
-        /*
-        private ushort[] GlyphIndicesForString(string str, GlyphTypeface typeface)
+        void MainWindow_TouchMove(object sender, TouchEventArgs e)
         {
-            return str.ToCharArray()
-                .Select(c => typeface.CharacterToGlyphMap[c])
-                .ToArray();
+            storyboard.Pause(this);
+
+            var percent = (e.GetTouchPoint(this).Position.X - mouseDragStart + imageDragStart) / this.Width;
+            var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
+            if (seekTo < 0) { seekTo = 0; }
+            storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);
         }
 
-        private double[] AdvanceWidthsForString(string str, GlyphTypeface typeface)
+        void MainWindow_TouchDown(object sender, TouchEventArgs e)
         {
-            return str.ToCharArray()
-                .Select(c => typeface.CharacterToGlyphMap[c])
-                .Select(g => typeface.AdvanceWidths[g] * 16.0)
-                .ToArray();
+            storyboard.Pause(this);
+            mouseDragStart = e.GetTouchPoint(this).Position.X;
+            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
         }
-
-        private ImageSource RenderArtwork()
-        {
-            OCLCWrapper wrapper = new OCLCWrapper(App.PublicationListUri, App.WSKey, App.SecretKey);
-            List<Publication> list = wrapper.createPublications();
-
-            var typeface = new GlyphTypeface(new Uri(@"file://C:\WINDOWS\fonts\segoeui.ttf"));
-            
-            var group = new DrawingGroup();
-            var catcher = new BitmapImage(
-                new Uri(@"pack://application:,,,/Resources/catcher.jpg", UriKind.RelativeOrAbsolute)
-            );
-
-            double imageHeight = 300;
-            double imageWidth = (imageHeight / catcher.PixelHeight) * catcher.PixelWidth;
-
-            for (var i = 0; i < list.Count; i++)
-            {
-                var drawing = new GlyphRunDrawing(Brushes.CornflowerBlue, new GlyphRun(
-                    typeface,
-                    0,
-                    false,
-                    16.0,
-                    GlyphIndicesForString(list[i].oclcNumber, typeface),
-                    new Point(i * imageWidth, 0),
-                    AdvanceWidthsForString(list[i].oclcNumber, typeface),
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-                    ));
-                group.Children.Add(drawing);
-                Console.WriteLine(drawing.Bounds.Height);
-
-                /*
-                group.Children.Add(new ImageDrawing(
-                    catcher,
-                    new Rect(i * imageWidth, 0, imageWidth, imageHeight)
-                ));
-                group.Children.Add(new ImageDrawing(
-                    catcher,
-                    new Rect(i * imageWidth, imageHeight, imageWidth, imageHeight)
-                ));
-                group.Children.Add(new ImageDrawing(
-                    catcher,
-                    new Rect(i * imageWidth, imageHeight * 2, imageWidth, imageHeight)
-                ));
-                 
-            }
-
-            var source = new DrawingImage(group);
-            source.Freeze();
-            return source;
-        }
-        */
 
         private void OnClick(object sender, MouseEventArgs args)
         {
             storyboard.Pause(this);
             mouseDragStart = args.GetPosition(this).X;
-            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * 1440;
+            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
         }
 
         private void RestartAnimation(object sender, MouseEventArgs args)
@@ -182,7 +103,7 @@ namespace BigData
 
             storyboard.Pause(this);
 
-            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / 1440;
+            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / this.Width;
             var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
             if (seekTo < 0) { seekTo = 0; }
             storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);

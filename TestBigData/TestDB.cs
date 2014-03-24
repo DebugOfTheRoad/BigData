@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BigData;
 
+/*
 namespace TestBigData {
     class TestDB : Test{
         public void TestDatabaseCreation() {
@@ -17,3 +18,4 @@ namespace TestBigData {
         }
     }
 }
+ */

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BigData.Emailer;
 
+/*
 namespace TestBigData {
     class TestEmail : Test {
         public void TestEmailSend() {            
@@ -13,3 +14,4 @@ namespace TestBigData {
         }
     }
 }
+ */
