@@ -6,17 +6,19 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 using System.Drawing;
+using System.Windows.Media.Imaging;
 using System.IO;
 
 
-namespace BigData {
-    public class Database {
+namespace BigData.OCLC {
+    public class Database : PublicationSource {
         private SQLiteConnection sql_con;
         private SQLiteCommand sql_cmd;
         //private SQLiteDataAdapter db;
         private string rss_feed;
         private string WSKey = "XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy";
         private string secretKey;
+        private uint count;
         
         public Database(string feed) {
             SQLiteConnection.CreateFile("publications.db");
@@ -43,40 +45,44 @@ namespace BigData {
             this.update_db();
         }
         
-        public void update_db() {
-            OCLCWrapper wrapper = new OCLCWrapper(this.rss_feed, this.WSKey, this.secretKey) ;
-            List<Publication> pub_list = wrapper.createPublications();
+        public async void update_db() {
+            Client oclc = new Client(this.secretKey, this.rss_feed) ;
+            var pub_list = await oclc.GetPublications();
+            count = 0;
 
             string insert_query;
-            for (int i = 0; i < pub_list.Count; i++) {
+            foreach (var pub in pub_list) {
                 // Insert publication
                 insert_query =  "INSERT INTO Publications VALUES (" + 
-                                "\"" + pub_list[i].isbn + "\", " + 
-                                "\"" + pub_list[i].title + "\", " +
-                                "\"" + pub_list[i].link + "\", " +
-                                "\"" + pub_list[i].desc + "\", " +
-                                //"\"" + pub_list[i].dateAdded + "\", " + 
+                                "\"" + pub.ISBNs + "\", " + 
+                                "\"" + pub.Title + "\", " +
+                                //"\"" + pub.link + "\", " +
+                                "\"google.com" + 
+                                "\"" + pub.Description + "\", " +
+                                //"\"" + pub.dateAdded + "\", " + 
                                 "0, " +
                                 "(@cover)" +
                                 ");";
                 
                 // Adding cover to query
-                byte[] cover = image_to_byte_array(pub_list[i].coverImage);
+                byte[] cover = image_to_byte_array(pub.CoverImage);
                 sql_cmd = new SQLiteCommand(insert_query, sql_con);
                 sql_cmd.Parameters.Add(new SQLiteParameter("@cover", cover));
                 sql_cmd.ExecuteNonQuery();
 
                 // Dan is gon learn today... bout this long dick
-                if (pub_list[i].authors == null) continue;
+                //if (pub_list[i].authors == null) continue;
 
                 // Insert authors
-                for (int j = 0; j < pub_list[i].authors.Count; j++) {
+                /*for (int j = 0; j < pub_list[i].authors.Count; j++) {
                     insert_query = "INSERT INTO Authors VALUES (" +
                                    "\"" + pub_list[i].isbn + "\", " +
                                    "\"" + pub_list[i].authors[j] + "\"" +
                                    ");";
                     this.sql_command(insert_query);
-                }
+                }*/
+
+                count++;
             }
         }
 
@@ -91,12 +97,15 @@ namespace BigData {
             return reader;
         }
 
-        private static byte[] image_to_byte_array(Image img) {
+        private static byte[] image_to_byte_array(BitmapImage img) {
             try {
                 MemoryStream ms = new MemoryStream();
-                img.Save(ms, System.Drawing.Imaging.ImageFormat.Gif);
+                PngBitmapEncoder encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(img));
+                encoder.Save(ms);
                 return ms.ToArray();
             } catch (NullReferenceException e) {
+                Console.WriteLine("No Image Found");
                 return new byte[0];
             }
         }
@@ -113,43 +122,35 @@ namespace BigData {
             return s;
         }
 
-        public ArrayList get_all_books() {
-            ArrayList book_list = new ArrayList();
+        public async Task<IEnumerable<Publication>> GetPublications() {
+            Publication[] pub_list = new Publication[count];
             int date = 0;
+            int i = 0;
             string query = "SELECT * FROM Publications WHERE date_added >= " + date + ";";
             SQLiteDataReader reader = this.sql_query(query);
             while (reader.Read()) {
-                Publication book = new Publication((string) reader["title"], "", "");
-                book.isbn = (string) reader["isbn"];
+                Publication pub = new Publication();
+                pub.Title = (string) reader["title"];
+                pub.ISBNs[0] = (string) reader["isbn"];
                 //book.dateAdded = (int) reader["date_added"];
                 
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[]) reader["cover"]);
-                book.coverImage = Image.FromStream(ms);
+                pub.CoverImage.BeginInit();
+                pub.CoverImage.StreamSource = ms;
+                pub.CoverImage.EndInit();
 
                 // Get the authors
-                query = "SELECT author FROM Authors WHERE isbn = \"" + book.isbn + "\";";
+                /*query = "SELECT author FROM Authors WHERE isbn = \"" + pub.isbn + "\";";
                 SQLiteDataReader author_reader = this.sql_query(query);
                 while (author_reader.Read()) {
-                    book.authors.Add((string)reader["author"]);
-                }
+                    pub.authors.Add((string)reader["author"]);
+                }*/
 
-                book_list.Add(book);
+                pub_list[i] = pub;
+                i++;
             }
-            return book_list;
-        }
-
-        public Publication get_isbn(string isbn) {
-            Publication book = new Publication("", "", "");
-            string query = "SELECT * FROM Publications WHERE isbn = \"" + isbn + "\";";
-            SQLiteDataReader reader = this.sql_query(query);
-            while (reader.Read()) {
-                // book.ISBN = (string) reader["title"];
-                book.title = (string) reader["isbn"];
-                // book.dateAdded = (int) reader["date_added"];
-                // book.coverImage = (Image) reader["cover"];
-            }
-            return book;
+            return pub_list;
         }
 
         public void close() {
