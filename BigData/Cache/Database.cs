@@ -17,7 +17,6 @@ namespace BigData.OCLC {
         //private SQLiteDataAdapter db;
         private string rss_feed;
         private string wskey;
-        private string secretKey;
         private uint count;
         
         public Database(string key, string feed) {
