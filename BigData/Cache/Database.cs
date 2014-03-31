@@ -16,15 +16,16 @@ namespace BigData.OCLC {
         private SQLiteCommand sql_cmd;
         //private SQLiteDataAdapter db;
         private string rss_feed;
-        private string WSKey = "XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy";
+        private string wskey;
         private string secretKey;
         private uint count;
         
-        public Database(string feed) {
+        public Database(string key, string feed) {
             SQLiteConnection.CreateFile("publications.db");
             sql_con = new SQLiteConnection("Data Source = publications.db; Version = 3; New = false; Compress = true");
             sql_con.Open();
             rss_feed = feed;
+            wskey = key;
         }
         
         public void create_db() {
@@ -44,7 +45,7 @@ namespace BigData.OCLC {
         }
         
         public async Task<uint> update_db() {
-            Client oclc = new Client(this.WSKey, this.rss_feed) ;
+            Client oclc = new Client(this.wskey, this.rss_feed) ;
             var pub_list = await oclc.GetPublications();
             this.count = 0;
 
