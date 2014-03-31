@@ -17,7 +17,6 @@ namespace BigData.OCLC {
     public class Database : PublicationSource {
         private SQLiteConnection SQLiteConnection;
         private SQLiteCommand SQLiteCommand;
-        //private SQLiteDataAdapter db;
         private string rssFeed;
         private string wsKey;
         private uint count;
@@ -104,7 +103,7 @@ namespace BigData.OCLC {
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@cover", cover));
                 SQLiteCommand.ExecuteNonQuery();
 
-                // Dan is gon learn today... bout this long dick
+                // Dan is gon learn today... bout this long dick!
                 //if (pub_list[i].authors == null) continue;
 
                 // Insert authors
@@ -192,7 +191,7 @@ namespace BigData.OCLC {
                 pub.ISBNs = new List<string>();
                 pub.ISBNs.Add((string) reader["isbn"]);
                 
-                Console.WriteLine(pub.Title);
+                //Console.WriteLine(pub.Title);
 
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[]) reader["cover"]);
