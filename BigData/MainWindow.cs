@@ -47,7 +47,9 @@ namespace BigData
         {
             //OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
-            OCLC.PublicationSource src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+            var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+            //src.create_db();
+            //await src.update_db();
             var publications = await src.GetPublications();
 
             var images = from pub in publications
@@ -60,7 +62,8 @@ namespace BigData
             canvas.RenderTransform = new TranslateTransform();
             RegisterName("transform", canvas.RenderTransform);
 
-            animation = new DoubleAnimation(0, this.Width, new Duration(TimeSpan.FromSeconds(120)));
+            animation = new DoubleAnimation(0, this.Width, new Duration(TimeSpan.FromSeconds(5)));
+            animation.RepeatBehavior = RepeatBehavior.Forever;
             Storyboard.SetTargetName(animation, "transform");
             Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
 

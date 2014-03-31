@@ -20,14 +20,30 @@ namespace BigData.OCLC {
         private uint count;
         
         public Database(string key, string feed) {
-            SQLiteConnection.CreateFile("publications.db");
-            sql_con = new SQLiteConnection("Data Source = publications.db; Version = 3; New = false; Compress = true");
+            var source = String.Format("Data Source = {0}; Version = 3; New = false; Compress = true", GetDatabasePath());
+            sql_con = new SQLiteConnection(source);
             sql_con.Open();
             rss_feed = feed;
             wskey = key;
         }
+
+        private string GetDatabasePath()
+        {
+            var appData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "BigData");
+
+            if (!Directory.Exists(appData))
+            {
+                Directory.CreateDirectory(appData);
+            }
+
+            return Path.Combine(appData, "publications.db");
+        }
         
         public void create_db() {
+            //SQLiteConnection.CreateFile(GetDatabasePath());
+
             string create_table = "CREATE TABLE Publications(" +
                                   "isbn TEXT, " +
                                   "title TEXT, " +
@@ -124,10 +140,11 @@ namespace BigData.OCLC {
         }
         
         public async Task<IEnumerable<Publication>> GetPublications() {
-            create_db();
-            Publication[] pub_list = new Publication[await update_db()];
+            //create_db();
+            //Publication[] pub_list = new Publication[await update_db()];
+            var pub_list = new List<Publication>();
 
-            int i = 0;
+            //int i = 0;
             string query = "SELECT * FROM Publications;";
             sql_cmd = new SQLiteCommand(query, sql_con);
             SQLiteDataReader reader = sql_cmd.ExecuteReader();
@@ -155,8 +172,9 @@ namespace BigData.OCLC {
                     pub.authors.Add((string)reader["author"]);
                 }*/
 
-                pub_list[i] = pub;
-                i++;
+                //pub_list[i] = pub;
+                pub_list.Add(pub);
+                //i++;
             }
             
             return pub_list;
