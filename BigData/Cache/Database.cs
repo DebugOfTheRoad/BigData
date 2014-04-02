@@ -53,9 +53,15 @@ namespace BigData.OCLC {
         /// <summary>
         /// Creates the Publication and Author tables.
         /// </summary>
-        public void create_db() {
-            //SQLiteConnection.CreateFile(GetDatabasePath());
+        public async Task create_db() {
+            string path = GetDatabasePath();
 
+            // Do nothing if database file exists
+            if (Directory.Exists(path))
+                return;
+ 
+            // Otherwise do things
+            SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
                               "id INT, " + 
                               "isbn TEXT, " +
@@ -70,6 +76,8 @@ namespace BigData.OCLC {
                                    ")";
             this.ExecuteSQLiteCommand(PubTable);
             this.ExecuteSQLiteCommand(AuthorTable);
+
+            await update_db();
         }
         
         /// <summary>
@@ -84,7 +92,7 @@ namespace BigData.OCLC {
             this.ExecuteSQLiteCommand(deleteQuery);
             
             // Now insert new entries
-            Client oclc = new Client(this.wsKey, this.rssFeed) ;
+            Client oclc = new Client(this.wsKey, this.rssFeed);
             var pubList = await oclc.GetPublications();
             this.count = 0;
             
