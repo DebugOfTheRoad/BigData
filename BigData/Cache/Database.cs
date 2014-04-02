@@ -57,14 +57,15 @@ namespace BigData.OCLC {
             //SQLiteConnection.CreateFile(GetDatabasePath());
 
             string PubTable = "CREATE TABLE Publications(" +
-                                  "isbn TEXT, " +
-                                  "title TEXT, " +
-                                  "link TEXT, " +
-                                  "desc TEXT, " + 
-                                  "cover BLOB" +
-                                  ")";
+                              "id INT, " + 
+                              "isbn TEXT, " +
+                              "title TEXT, " +
+                              "link TEXT, " +
+                              "desc TEXT, " + 
+                              "cover BLOB" +
+                              ")";
             string AuthorTable = "CREATE TABLE Authors(" +
-                                   "isbn TEXT, " +
+                                   "id INT, " +
                                    "author TEXT" +
                                    ")";
             this.ExecuteSQLiteCommand(PubTable);
@@ -76,23 +77,32 @@ namespace BigData.OCLC {
         /// </summary>
         /// <returns>The number of publications entered as an unsigned int.</returns>
         public async Task<uint> update_db() {
+            // First remove entries from current table
+            string deleteQuery = "DELETE * FROM Publications;";
+            this.ExecuteSQLiteCommand(deleteQuery);
+            deleteQuery = "DELETE * FROM Authors;";
+            this.ExecuteSQLiteCommand(deleteQuery);
+            
+            // Now insert new entries
             Client oclc = new Client(this.wsKey, this.rssFeed) ;
-            var pub_list = await oclc.GetPublications();
+            var pubList = await oclc.GetPublications();
             this.count = 0;
-
+            
             string InsertQuery;
-            foreach (var pub in pub_list) {
+            foreach (var pub in pubList) {
                 // Insert publication
-                InsertQuery =  "INSERT INTO Publications VALUES (" + 
-                                "(@isbn), " +
-                                "(@title), " +
-                                "(@link), " +
-                                "(@desc), " +
-                                "(@cover)" +
-                                ");";
+                InsertQuery =  "INSERT INTO Publications VALUES (" +
+                               "(@id), " +
+                               "(@isbn), " +
+                               "(@title), " +
+                               "(@link), " +
+                               "(@desc), " +
+                               "(@cover)" +
+                               ");";
                 
                 // Adding parameters
                 SQLiteCommand = new SQLiteCommand(InsertQuery, SQLiteConnection);
+                SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count)); 
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@link", "google.com"));
@@ -107,13 +117,17 @@ namespace BigData.OCLC {
                 //if (pub_list[i].authors == null) continue;
 
                 // Insert authors
-                /*for (int j = 0; j < pub_list[i].authors.Count; j++) {
-                    insert_query = "INSERT INTO Authors VALUES (" +
-                                   "\"" + pub_list[i].isbn + "\", " +
-                                   "\"" + pub_list[i].authors[j] + "\"" +
-                                   ");";
-                    this.sql_command(insert_query);
-                }*/
+                for (int j = 0; j < pub.Authors.Count; j++) {
+                    string authorQuery = "INSERT INTO Authors VALUES (" +
+                                         "(@id), " +
+                                         "(@author), ";
+
+                    // Author parameter
+                    SQLiteCommand = new SQLiteCommand(authorQuery, SQLiteConnection);
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@author", pub.Authors[j]));
+                    SQLiteCommand.ExecuteNonQuery();
+                }
 
                 this.count++;
             }
@@ -181,7 +195,7 @@ namespace BigData.OCLC {
         public async Task<IEnumerable<Publication>> GetPublications() {
             var PubList = new List<Publication>();
 
-            //int i = 0;
+            int count = 0;
             string query = "SELECT * FROM Publications;";
             SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
         
@@ -202,15 +216,14 @@ namespace BigData.OCLC {
                 pub.CoverImage.Freeze();
 
                 // Get the authors
-                /*query = "SELECT author FROM Authors WHERE isbn = \"" + pub.isbn + "\";";
-                SQLiteDataReader author_reader = this.sql_query(query);
+                query = "SELECT author FROM Authors WHERE id = " + count + ";";
+                SQLiteDataReader author_reader = this.ExecuteSQLiteQuery(query);
                 while (author_reader.Read()) {
-                    pub.authors.Add((string)reader["author"]);
-                }*/
+                    pub.Authors.Add((string)reader["author"]);
+                }
 
-                //pub_list[i] = pub;
                 PubList.Add(pub);
-                //i++;
+                count++;
             }
             
             return PubList;
