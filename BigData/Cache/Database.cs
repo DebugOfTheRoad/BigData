@@ -57,11 +57,11 @@ namespace BigData.OCLC {
             string path = GetDatabasePath();
 
             // Do nothing if database file exists
-            if (Directory.Exists(path))
+            if (File.Exists(path))
                 return;
  
             // Otherwise do things
-            SQLiteConnection.CreateFile(path);
+            //SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
                               "id INT, " + 
                               "isbn TEXT, " +
@@ -71,9 +71,9 @@ namespace BigData.OCLC {
                               "cover BLOB" +
                               ")";
             string AuthorTable = "CREATE TABLE Authors(" +
-                                   "id INT, " +
-                                   "author TEXT" +
-                                   ")";
+                                 "id INT, " +
+                                 "author TEXT" +
+                                 ")";
             this.ExecuteSQLiteCommand(PubTable);
             this.ExecuteSQLiteCommand(AuthorTable);
 
@@ -86,9 +86,9 @@ namespace BigData.OCLC {
         /// <returns>The number of publications entered as an unsigned int.</returns>
         public async Task<uint> update_db() {
             // First remove entries from current table
-            string deleteQuery = "DELETE * FROM Publications;";
+            string deleteQuery = "DELETE FROM Publications;";
             this.ExecuteSQLiteCommand(deleteQuery);
-            deleteQuery = "DELETE * FROM Authors;";
+            deleteQuery = "DELETE FROM Authors;";
             this.ExecuteSQLiteCommand(deleteQuery);
             
             // Now insert new entries
@@ -128,7 +128,7 @@ namespace BigData.OCLC {
                 for (int j = 0; j < pub.Authors.Count; j++) {
                     string authorQuery = "INSERT INTO Authors VALUES (" +
                                          "(@id), " +
-                                         "(@author), ";
+                                         "(@author));";
 
                     // Author parameter
                     SQLiteCommand = new SQLiteCommand(authorQuery, SQLiteConnection);
@@ -212,8 +212,10 @@ namespace BigData.OCLC {
                 pub.Title = (string) reader["title"];
                 pub.ISBNs = new List<string>();
                 pub.ISBNs.Add((string) reader["isbn"]);
-                
-                //Console.WriteLine(pub.Title);
+                if (reader["desc"].GetType() != typeof(DBNull))
+                    pub.Description = (string) reader["desc"];
+
+                Console.WriteLine(pub.Title);
 
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[]) reader["cover"]);
@@ -224,11 +226,13 @@ namespace BigData.OCLC {
                 pub.CoverImage.Freeze();
 
                 // Get the authors
-                query = "SELECT author FROM Authors WHERE id = " + count + ";";
+                /*query = "SELECT * FROM Authors WHERE id = " + count + ";";
+                Console.WriteLine(query);
                 SQLiteDataReader author_reader = this.ExecuteSQLiteQuery(query);
                 while (author_reader.Read()) {
-                    pub.Authors.Add((string)reader["author"]);
-                }
+                    Console.WriteLine("\t" + reader["author"]);
+                    pub.Authors.Add((string) reader["author"]);
+                }*/
 
                 PubList.Add(pub);
                 count++;
