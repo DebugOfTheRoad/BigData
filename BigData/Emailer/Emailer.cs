@@ -10,24 +10,38 @@ using Newtonsoft.Json;
 
 namespace BigData.Emailer {
     public class Emailer {
-        public static void emailSend(string username, Publication pub) {
-            MailMessage email = new MailMessage();
-            email.To.Add(getName(username) + "@bucknell.edu");
-            email.Subject = "Here is your eBook: " + pub.Title; // Should probably get something less lame here            
-            email.From = new MailAddress("cec030@bucknell.edu");
-            email.Body = getMessageBody(getName(username), pub);
-            Console.WriteLine(getName(username));
-            Console.WriteLine(email.Body);
-            SmtpClient smtp = new SmtpClient("bucknell.edu.s10a1.psmtp.com", 25);
-            //smtp.EnableSsl = true;
-            smtp.Timeout = 10000;
-            
-            // Send the email
-            try {
-               // smtp.Send(email);
-            } catch (Exception e) {
-                Console.WriteLine("Error: " + e);
-            } 
+        public static void emailSend(string username, Publication pub){
+            var fromAddress = new MailAddress("librarydisplaydonotreply@gmail.com", "Library Digital Display");
+            var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
+            string fromPassword = "readingisgood";
+            string subject = "Here is your eBook: " + pub.Title; // Should probably get something less lame here            
+
+            string body = getMessageBody(getName(username), pub);
+
+            var smtp = new SmtpClient
+            {
+                Host = "smtp.gmail.com",
+                Port = 587,
+                EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
+            };
+            using (var message = new MailMessage(fromAddress, toAddress)
+            {
+                Subject = subject,
+                Body = body
+            })
+            {
+                try
+                {
+                    smtp.Send(message);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e);
+                }
+            }
         }
 
         private static string getName(String username)
@@ -43,7 +57,7 @@ namespace BigData.Emailer {
 
         private static string getMessageBody(String name, Publication pub)
         {
-            return "Hey " + name + "! <br> Check out this link! http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
+            return "Hey " + name + "! Check out this link! http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
         }
         
     }
