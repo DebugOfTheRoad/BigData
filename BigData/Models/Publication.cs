@@ -46,6 +46,7 @@ namespace BigData
         public string OCLCNumber { get; set; }
         public string Description { get; set; }
         public List<string> Authors { get; set; }
+        public string CoverImageURI { get; set; }
 
         [XmlIgnore]
         public BitmapImage CoverImage { get; set; }

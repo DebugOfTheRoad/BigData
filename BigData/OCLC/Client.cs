@@ -64,7 +64,9 @@ namespace BigData.OCLC
             pub.OCLCNumber = oclcNumber;
 
             var allISBNs = await FetchRelatedISBNs(pub.ISBNs);
-            pub.CoverImage = CoverImageForISBNs(allISBNs);
+            coverImage image = CoverImageForISBNs(allISBNs);
+            pub.CoverImage = image.image;
+            pub.CoverImageURI  = image.uri;
 
             return pub;
         }
@@ -93,7 +95,7 @@ namespace BigData.OCLC
             }
         }
 
-        private BitmapImage CoverImageForISBNs(string[] isbns)
+        private coverImage CoverImageForISBNs(string[] isbns)
         {
             var baseUri = new Uri(@"http://covers.openlibrary.org/b/isbn/");
             var requestUris = (from isbn in isbns
@@ -105,6 +107,7 @@ namespace BigData.OCLC
 
             foreach (var uri in requestUris)
             {
+                Console.WriteLine(uri.ToString());
                 var request = WebRequest.Create(uri);
                 try
                 {
@@ -121,12 +124,26 @@ namespace BigData.OCLC
                     image.EndInit();
                     image.Freeze();
 
-                    if (image.PixelHeight >= 300) return image;
+                    if (image.PixelHeight >= 300)
+                    {
+                        return new coverImage(image, uri.ToString());
+                    }
                 }
                 catch (WebException) { }
             }
 
             throw new Exception("No cover images");
+        }
+    }
+    public struct coverImage
+    {
+        public BitmapImage image;
+        public String uri;
+
+        public coverImage(BitmapImage x, String y)
+        {
+            image = x;
+            uri = y;
         }
     }
 }

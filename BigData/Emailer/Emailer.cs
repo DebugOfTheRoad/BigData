@@ -7,6 +7,9 @@ using System.Net;
 using System.Net.Mail;
 using System.Xml;
 using Newtonsoft.Json;
+using Nustache.Core;
+using System.Windows.Media.Imaging;
+
 
 namespace BigData.Emailer {
     public class Emailer {
@@ -14,7 +17,7 @@ namespace BigData.Emailer {
             var fromAddress = new MailAddress("librarydisplaydonotreply@gmail.com", "Library Digital Display");
             var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
             string fromPassword = "readingisgood";
-            string subject = "Here is your eBook: " + pub.Title; // Should probably get something less lame here            
+            string subject = "Here is your PENIS!: " + pub.Title; // Should probably get something less lame here            
 
             string body = getMessageBody(getName(username), pub);
 
@@ -30,7 +33,8 @@ namespace BigData.Emailer {
             using (var message = new MailMessage(fromAddress, toAddress)
             {
                 Subject = subject,
-                Body = body
+                Body = body,
+                IsBodyHtml = true
             })
             {
                 try
@@ -57,7 +61,16 @@ namespace BigData.Emailer {
 
         private static string getMessageBody(String name, Publication pub)
         {
-            return "Hey " + name + "! Check out this link! http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
+            string sTemplate = "<center>Hey {{name}}! <br> Here is the link to {{pubname}}: {{link}}"
+                + "<br><a href=\"{{link}}\"><img src=\"{{coverURI}}\" alt=\"Wat\" </a>";
+            Dictionary<string, string> data = new Dictionary<string, string>();
+            data["name"] = name;
+            data["pubname"] = pub.Title;
+            data["link"] = "http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
+            data["coverURI"] = pub.CoverImageURI;
+            Console.WriteLine("look at me! I'm mr. meesicks");
+            Console.WriteLine(pub.CoverImageURI);
+            return Nustache.Core.Render.StringToString(sTemplate, data);
         }
         
     }
