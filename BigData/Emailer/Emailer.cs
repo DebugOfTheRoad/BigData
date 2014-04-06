@@ -14,9 +14,9 @@ using System.Windows.Media.Imaging;
 namespace BigData.Emailer {
     public class Emailer {
         public static void emailSend(string username, Publication pub){
-            var fromAddress = new MailAddress("librarydisplaydonotreply@gmail.com", "Library Digital Display");
+            var fromAddress = new MailAddress(Properties.Settings.Default.MailFrom, Properties.Settings.Default.MailName);
             var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
-            string fromPassword = "readingisgood";
+            string fromPassword = Properties.Settings.Default.MailPassword;
             string subject = "Here is your eBook!: " + pub.Title; // Should probably get something less lame here            
 
             string body = getMessageBody(getName(username), pub);

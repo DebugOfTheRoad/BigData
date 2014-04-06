@@ -42,5 +42,32 @@ namespace BigData.Properties {
                 return ((string)(this["RSSUri"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("librarydisplaydonotreply@gmail.com")]
+        public string MailFrom {
+            get {
+                return ((string)(this["MailFrom"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Library Digital Display")]
+        public string MailName {
+            get {
+                return ((string)(this["MailName"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("readingisgood")]
+        public string MailPassword {
+            get {
+                return ((string)(this["MailPassword"]));
+            }
+        }
     }
 }

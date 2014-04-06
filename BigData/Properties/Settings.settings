@@ -8,5 +8,14 @@
     <Setting Name="RSSUri" Type="(Web Service URL)" Scope="Application">
       <Value Profile="(Default)">https://bucknell.worldcat.org/profiles/danieleshleman/lists/3234701/rss?count=2000</Value>
     </Setting>
+    <Setting Name="MailFrom" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">librarydisplaydonotreply@gmail.com</Value>
+    </Setting>
+    <Setting Name="MailName" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Library Digital Display</Value>
+    </Setting>
+    <Setting Name="MailPassword" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">readingisgood</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
