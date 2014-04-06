@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Mail;
 using System.Xml;
+using Newtonsoft.Json;
 
 namespace BigData.Emailer {
     public class Emailer {
@@ -23,7 +24,7 @@ namespace BigData.Emailer {
             
             // Send the email
             try {
-                smtp.Send(email);
+               // smtp.Send(email);
             } catch (Exception e) {
                 Console.WriteLine("Error: " + e);
             } 
@@ -32,18 +33,18 @@ namespace BigData.Emailer {
         private static string getName(String username)
         {
             String URL = @"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username;
-            var request = WebRequest.CreateHttp(URL);
-            var response = (HttpWebResponse)request.GetResponse();
-            System.IO.StreamReader reader = new System.IO.StreamReader(response.GetResponseStream());
-            String name = reader.ReadToEnd();
-            var arr = name.Split(' ');
-            arr = arr[0].Split('"');
-            return arr.Last();
+            WebClient client = new WebClient();
+            string json = client.DownloadString(URL);
+            List<dynamic> result = JsonConvert.DeserializeObject<List<dynamic>>(json);
+            String name = result.First().givenname[0];
+            name = name.Split(' ')[0];
+            return name;
         }
 
         private static string getMessageBody(String name, Publication pub)
         {
             return "Hey " + name + "! <br> Check out this link! http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
         }
+        
     }
 }
