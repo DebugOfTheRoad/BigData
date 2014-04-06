@@ -17,7 +17,7 @@ namespace BigData.Emailer {
             var fromAddress = new MailAddress("librarydisplaydonotreply@gmail.com", "Library Digital Display");
             var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
             string fromPassword = "readingisgood";
-            string subject = "Here is your PENIS!: " + pub.Title; // Should probably get something less lame here            
+            string subject = "Here is your eBook!: " + pub.Title; // Should probably get something less lame here            
 
             string body = getMessageBody(getName(username), pub);
 
