@@ -53,7 +53,7 @@ namespace BigData.OCLC {
         /// <summary>
         /// Creates the Publication and Author tables.
         /// </summary>
-        public async Task create_db() {
+        public async Task createDatabase() {
             string path = GetDatabasePath();
 
             // Do nothing if database file exists
@@ -77,14 +77,14 @@ namespace BigData.OCLC {
             this.ExecuteSQLiteCommand(PubTable);
             this.ExecuteSQLiteCommand(AuthorTable);
 
-            await update_db();
+            await updateDatabase();
         }
         
         /// <summary>
         /// Gets publication data from the OCLC client and stores it into the database.
         /// </summary>
         /// <returns>The number of publications entered as an unsigned int.</returns>
-        public async Task<uint> update_db() {
+        public async Task<uint> updateDatabase() {
             // First remove entries from current table
             string deleteQuery = "DELETE FROM Publications;";
             this.ExecuteSQLiteCommand(deleteQuery);
@@ -226,13 +226,14 @@ namespace BigData.OCLC {
                 pub.CoverImage.Freeze();
 
                 // Get the authors
-                /*query = "SELECT * FROM Authors WHERE id = " + count + ";";
-                Console.WriteLine(query);
-                SQLiteDataReader author_reader = this.ExecuteSQLiteQuery(query);
-                while (author_reader.Read()) {
-                    Console.WriteLine("\t" + reader["author"]);
-                    pub.Authors.Add((string) reader["author"]);
-                }*/
+                query = "SELECT author FROM Authors WHERE id = " + count + ";";
+                SQLiteDataReader authorReader = this.ExecuteSQLiteQuery(query);
+                pub.Authors = new List<string>();
+                while (authorReader.Read()) {
+                    Console.WriteLine("\t" + authorReader["author"]);
+                    if (authorReader["author"].GetType() != typeof(DBNull)) 
+                        pub.Authors.Add((string) authorReader["author"]);
+                }
 
                 PubList.Add(pub);
                 count++;

@@ -133,8 +133,8 @@ namespace BigData
             //OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
-            await src.create_db();
-            //await src.update_db();
+            await src.createDatabase();
+            //await src.updateDatabase();
             var publications = await src.GetPublications();
 
             var images = (from pub in publications
