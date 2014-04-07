@@ -68,8 +68,6 @@ namespace BigData.Emailer {
             data["pubname"] = pub.Title;
             data["link"] = "http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
             data["coverURI"] = pub.CoverImageURI;
-            Console.WriteLine("look at me! I'm mr. meesicks");
-            Console.WriteLine(pub.CoverImageURI);
             return Nustache.Core.Render.StringToString(sTemplate, data);
         }
         
