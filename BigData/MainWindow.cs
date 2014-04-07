@@ -25,12 +25,8 @@ namespace BigData
         }
 
         private Canvas canvas;
-        private double tileWidth;
-        private bool isMouseDown;
-        private Dictionary<Image, double> startingPositions;
-        private double dragBegin;
-        private double scrollVelocity;
-        private double lastMousePosition;
+        private WrappingCollectionView[] views;
+        private int activeViewIndex;
 
         private void InitializeComponent()
         {
@@ -41,90 +37,38 @@ namespace BigData
 
             KeyUp += OnKeyUp;
             Loaded += PopulateDisplay;
-            //MouseDown += BeginMouseTracking;
-            //MouseUp += EndMouseTracking;
-            //MouseMove += TrackMouse;
 
             canvas = new Canvas();
             Content = canvas;
 
-            isMouseDown = false;
-            scrollVelocity = 0.5;
-
-            //CompositionTarget.Rendering += ScrollImages;
-            //CompositionTarget.Rendering += UpdateScrollVelocity;
-        }
-
-        private void TrackMouse(object sender, MouseEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed)
+            MouseDown += (sender, e) =>
             {
-                double translation = e.GetPosition(this).X - dragBegin;
-                foreach (var pair in startingPositions)
-                {
-                    var image = pair.Key;
-                    var position = pair.Value;
-
-                    var newPosition = (position + translation) % tileWidth;
-                    if (newPosition < 0) newPosition += tileWidth;
-                    Canvas.SetLeft(image, newPosition);
-                }
-
-                double thisPosition = e.GetPosition(this).X;
-                var timer = new Timer(16);
-                timer.Elapsed += (s, a) =>
-                {
-                    lastMousePosition = thisPosition;
-                    timer.Stop();
-                };
-                timer.Start();
-            }
-        }
-
-        private void EndMouseTracking(object sender, MouseButtonEventArgs e)
-        {
-            isMouseDown = false;
-            scrollVelocity = e.GetPosition(this).X - lastMousePosition;
-        }
-
-        private void BeginMouseTracking(object sender, MouseButtonEventArgs e)
-        {
-            isMouseDown = true;
-            dragBegin = e.GetPosition(this).X;
-            lastMousePosition = dragBegin;
-            startingPositions = canvas.Children.OfType<Image>().ToDictionary(
-                im => im,
-                im => Canvas.GetLeft(im)
-            );
-        }
-
-        void ScrollImages(object sender, EventArgs e)
-        {
-            if (!isMouseDown)
+                activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
+                views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
+            };
+            TouchDown += (sender, e) =>
             {
-                foreach (var child in canvas.Children)
-                {
-                    var image = (Image)child;
-                    var nextX = (Canvas.GetLeft(image) + scrollVelocity) % tileWidth;
-                    Canvas.SetLeft(image, nextX);
-                }
-            }
-        }
+                activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y % (this.Height / 3));
+                views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
+            };
 
-        void UpdateScrollVelocity(object sender, EventArgs e)
-        {
-            if (Math.Abs(scrollVelocity) > 0.5)
+            MouseUp += (sender, e) =>
             {
-                scrollVelocity *= 0.90;
-            }
-            else if (scrollVelocity > 0)
+                views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
+            };
+            TouchUp += (sender, e) =>
             {
-                scrollVelocity = 0.5;
-            }
-            else if (scrollVelocity < 0)
+                views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
+            };
+
+            MouseMove += (sender, e) =>
             {
-                scrollVelocity = -0.5;
-            }
+                views[activeViewIndex].TrackTouch(e.GetPosition(this).X);
+            };
+            TouchMove += (sender, e) =>
+            {
+                views[activeViewIndex].TrackTouch(e.GetTouchPoint(this).Position.X);
+            };
         }
 
         async void PopulateDisplay(object sender, RoutedEventArgs e)
@@ -133,7 +77,6 @@ namespace BigData
             //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             await src.createDatabase();
-            //await src.updateDatabase();
             var publications = await src.GetPublications();
 
             var allImages = (from pub in publications
@@ -141,16 +84,18 @@ namespace BigData
 
             var imagesPerRow = allImages.Length / 3;
 
-            var view1 = new WrappingCollectionView(allImages.Take(imagesPerRow).ToArray());
-            canvas.Children.Add(view1);
+            views = new WrappingCollectionView[3];
 
-            var view2 = new WrappingCollectionView(allImages.Skip(imagesPerRow).Take(imagesPerRow).ToArray());
-            canvas.Children.Add(view2);
-            Canvas.SetTop(view2, Height / 3);
+            views[0] = new WrappingCollectionView(allImages.Take(imagesPerRow).ToArray());
+            canvas.Children.Add(views[0]);
 
-            var view3 = new WrappingCollectionView(allImages.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray());
-            canvas.Children.Add(view3);
-            Canvas.SetTop(view3, 2 * Height / 3);
+            views[1] = new WrappingCollectionView(allImages.Skip(imagesPerRow).Take(imagesPerRow).ToArray());
+            canvas.Children.Add(views[1]);
+            Canvas.SetTop(views[1], Height / 3);
+
+            views[2] = new WrappingCollectionView(allImages.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray());
+            canvas.Children.Add(views[2]);
+            Canvas.SetTop(views[2], 2 * Height / 3);
         }
 
         private void OnKeyUp(object sender, KeyEventArgs args)
