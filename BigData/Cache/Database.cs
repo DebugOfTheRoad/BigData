@@ -57,9 +57,9 @@ namespace BigData.OCLC {
             string path = GetDatabasePath();
 
             // Do nothing if database file exists
-            if (File.Exists(path))
-                return;
- 
+            //if (File.Exists(path))
+                //return;
+      
             // Otherwise do things
             //SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
