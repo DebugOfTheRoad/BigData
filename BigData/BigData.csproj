@@ -107,6 +107,7 @@
     <Compile Include="MainWindow.cs" />
     <Compile Include="OCLC\Cache.cs" />
     <Compile Include="OCLC\PublicationSource.cs" />
+    <Compile Include="WrappingCollectionView.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OCLC\Client.cs" />

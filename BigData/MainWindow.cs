@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Timers;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,99 +19,136 @@ namespace BigData
 {
     public class MainWindow : Window
     {
-        private Storyboard storyboard;
-        private DoubleAnimation animation;
-        private double mouseDragStart;
-        private double imageDragStart;
-
         public MainWindow()
         {
             InitializeComponent();
         }
 
+        private Canvas canvas;
+        private double tileWidth;
+        private bool isMouseDown;
+        private Dictionary<Image, double> startingPositions;
+        private double dragBegin;
+        private double scrollVelocity;
+        private double lastMousePosition;
+
         private void InitializeComponent()
         {
-            this.WindowStyle = WindowStyle.None;
-            this.WindowState = WindowState.Maximized;
-            this.Visibility = System.Windows.Visibility.Visible;
-            this.Title = "Digital Publication Display";
-            this.KeyUp += this.OnKeyUp;
-            this.MouseMove += this.SeekToMouse;
-            this.MouseUp += this.RestartAnimation;
-            this.MouseDown += this.OnClick;
-            this.TouchDown += MainWindow_TouchDown;
-            this.TouchMove += MainWindow_TouchMove;
-            this.Loaded += MainWindow_Loaded;
+            WindowStyle = WindowStyle.None;
+            WindowState = WindowState.Maximized;
+            Visibility = Visibility.Visible;
+            Title = "Digital Publication Display";
+
+            KeyUp += OnKeyUp;
+            Loaded += PopulateDisplay;
+            MouseDown += BeginMouseTracking;
+            MouseUp += EndMouseTracking;
+            MouseMove += TrackMouse;
+
+            canvas = new Canvas();
+            canvas.RenderTransform = new TranslateTransform() { X = -500 };
+            Content = canvas;
+
+            isMouseDown = false;
+            scrollVelocity = 0.5;
+
+            CompositionTarget.Rendering += ScrollImages;
+            CompositionTarget.Rendering += UpdateScrollVelocity;
         }
 
-        async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private void TrackMouse(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                double translation = e.GetPosition(this).X - dragBegin;
+                foreach (var pair in startingPositions)
+                {
+                    var image = pair.Key;
+                    var position = pair.Value;
+
+                    var newPosition = (position + translation) % tileWidth;
+                    if (newPosition < 0) newPosition += tileWidth;
+                    Canvas.SetLeft(image, newPosition);
+                }
+
+                double thisPosition = e.GetPosition(this).X;
+                var timer = new Timer(16);
+                timer.Elapsed += (s, a) =>
+                {
+                    lastMousePosition = thisPosition;
+                    timer.Stop();
+                };
+                timer.Start();
+            }
+        }
+
+        private void EndMouseTracking(object sender, MouseButtonEventArgs e)
+        {
+            isMouseDown = false;
+            scrollVelocity = e.GetPosition(this).X - lastMousePosition;
+        }
+
+        private void BeginMouseTracking(object sender, MouseButtonEventArgs e)
+        {
+            isMouseDown = true;
+            dragBegin = e.GetPosition(this).X;
+            lastMousePosition = dragBegin;
+            startingPositions = canvas.Children.OfType<Image>().ToDictionary(
+                im => im,
+                im => Canvas.GetLeft(im)
+            );
+        }
+
+        void ScrollImages(object sender, EventArgs e)
+        {
+            if (!isMouseDown)
+            {
+                foreach (var child in canvas.Children)
+                {
+                    var image = (Image)child;
+                    var nextX = (Canvas.GetLeft(image) + scrollVelocity) % tileWidth;
+                    Canvas.SetLeft(image, nextX);
+                }
+            }
+        }
+
+        void UpdateScrollVelocity(object sender, EventArgs e)
+        {
+            if (Math.Abs(scrollVelocity) > 0.5)
+            {
+                scrollVelocity *= 0.90;
+            }
+            else if (scrollVelocity > 0)
+            {
+                scrollVelocity = 0.5;
+            }
+            else if (scrollVelocity < 0)
+            {
+                scrollVelocity = -0.5;
+            }
+        }
+
+        async void PopulateDisplay(object sender, RoutedEventArgs e)
         {
             //OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
-            //src.create_db();
+            await src.create_db();
             //await src.update_db();
             var publications = await src.GetPublications();
 
-            var images = from pub in publications
-                         select new Image { Source = pub.CoverImage };
+            var images = (from pub in publications
+                          select new Image() { Source = pub.CoverImage, Height = 300 }).ToArray();
+            tileWidth = images.Aggregate(0.0, (acc, im) => acc + (im.Height / im.Source.Height) * im.Source.Width);
 
-            var canvas = new ImageCollectionCanvas() { TileWidth = this.Width * 2, Images = images.ToArray() };
-            this.Content = canvas;
 
-            NameScope.SetNameScope(this, new NameScope());
-            canvas.RenderTransform = new TranslateTransform();
-            RegisterName("transform", canvas.RenderTransform);
-
-            animation = new DoubleAnimation(0, this.Width, new Duration(TimeSpan.FromSeconds(5)));
-            animation.RepeatBehavior = RepeatBehavior.Forever;
-            Storyboard.SetTargetName(animation, "transform");
-            Storyboard.SetTargetProperty(animation, new PropertyPath(TranslateTransform.XProperty));
-
-            storyboard = new Storyboard();
-            storyboard.Children.Add(animation);
-            storyboard.Begin(this, true);
-        }
-
-        void MainWindow_TouchMove(object sender, TouchEventArgs e)
-        {
-            storyboard.Pause(this);
-
-            var percent = (e.GetTouchPoint(this).Position.X - mouseDragStart + imageDragStart) / this.Width;
-            var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
-            if (seekTo < 0) { seekTo = 0; }
-            storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);
-        }
-
-        void MainWindow_TouchDown(object sender, TouchEventArgs e)
-        {
-            storyboard.Pause(this);
-            mouseDragStart = e.GetTouchPoint(this).Position.X;
-            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
-        }
-
-        private void OnClick(object sender, MouseEventArgs args)
-        {
-            storyboard.Pause(this);
-            mouseDragStart = args.GetPosition(this).X;
-            imageDragStart = storyboard.GetCurrentProgress(this).GetValueOrDefault(0) * this.Width;
-        }
-
-        private void RestartAnimation(object sender, MouseEventArgs args)
-        {
-            storyboard.Resume(this);
-        }
-
-        private void SeekToMouse(object sender, MouseEventArgs args)
-        {
-            if (MouseButtonState.Pressed != args.LeftButton) return;
-
-            storyboard.Pause(this);
-
-            var percent = (args.GetPosition(this).X - mouseDragStart + imageDragStart) / this.Width;
-            var seekTo = percent * animation.Duration.TimeSpan.TotalSeconds;
-            if (seekTo < 0) { seekTo = 0; }
-            storyboard.SeekAlignedToLastTick(this, TimeSpan.FromSeconds(seekTo), TimeSeekOrigin.BeginTime);
+            double offset = 0;
+            foreach (var image in images)
+            {
+                canvas.Children.Add(image);
+                Canvas.SetLeft(image, offset);
+                offset += (image.Height / image.Source.Height) * image.Source.Width;
+            }
         }
 
         private void OnKeyUp(object sender, KeyEventArgs args)

@@ -33,12 +33,6 @@ namespace BigData
                 SetLeft(image, horizontalOffset);
 
                 horizontalOffset += image.ActualWidth;
-
-                if (horizontalOffset > TileWidth/2)
-                {
-                    horizontalOffset = -TileWidth/2;
-                    verticalOffset += image.ActualHeight;
-                }
             }
         }
         
