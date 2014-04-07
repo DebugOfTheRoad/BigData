@@ -41,19 +41,18 @@ namespace BigData
 
             KeyUp += OnKeyUp;
             Loaded += PopulateDisplay;
-            MouseDown += BeginMouseTracking;
-            MouseUp += EndMouseTracking;
-            MouseMove += TrackMouse;
+            //MouseDown += BeginMouseTracking;
+            //MouseUp += EndMouseTracking;
+            //MouseMove += TrackMouse;
 
             canvas = new Canvas();
-            canvas.RenderTransform = new TranslateTransform() { X = -500 };
             Content = canvas;
 
             isMouseDown = false;
             scrollVelocity = 0.5;
 
-            CompositionTarget.Rendering += ScrollImages;
-            CompositionTarget.Rendering += UpdateScrollVelocity;
+            //CompositionTarget.Rendering += ScrollImages;
+            //CompositionTarget.Rendering += UpdateScrollVelocity;
         }
 
         private void TrackMouse(object sender, MouseEventArgs e)
@@ -137,18 +136,21 @@ namespace BigData
             //await src.updateDatabase();
             var publications = await src.GetPublications();
 
-            var images = (from pub in publications
-                          select new Image() { Source = pub.CoverImage, Height = 300 }).ToArray();
-            tileWidth = images.Aggregate(0.0, (acc, im) => acc + (im.Height / im.Source.Height) * im.Source.Width);
+            var allImages = (from pub in publications
+                             select new Image() { Source = pub.CoverImage, Height = this.Height / 3 }).ToArray();
 
+            var imagesPerRow = allImages.Length / 3;
 
-            double offset = 0;
-            foreach (var image in images)
-            {
-                canvas.Children.Add(image);
-                Canvas.SetLeft(image, offset);
-                offset += (image.Height / image.Source.Height) * image.Source.Width;
-            }
+            var view1 = new WrappingCollectionView(allImages.Take(imagesPerRow).ToArray());
+            canvas.Children.Add(view1);
+
+            var view2 = new WrappingCollectionView(allImages.Skip(imagesPerRow).Take(imagesPerRow).ToArray());
+            canvas.Children.Add(view2);
+            Canvas.SetTop(view2, Height / 3);
+
+            var view3 = new WrappingCollectionView(allImages.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray());
+            canvas.Children.Add(view3);
+            Canvas.SetTop(view3, 2 * Height / 3);
         }
 
         private void OnKeyUp(object sender, KeyEventArgs args)
