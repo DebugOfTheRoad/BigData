@@ -20,6 +20,7 @@ namespace BigData.OCLC {
         private string rssFeed;
         private string wsKey;
         private uint count;
+        private bool exists;
         
         /// <summary>
         /// Create a database instance.
@@ -27,7 +28,14 @@ namespace BigData.OCLC {
         /// <param name="key">The WSKey required to access the database.</param>
         /// <param name="feed">The rss feed that will be passed to the OCLC client.</param>
         public Database(string key, string feed) {
-            var source = String.Format("Data Source = {0}; Version = 3; New = false; Compress = true", GetDatabasePath());
+            var path = GetDatabasePath();
+            // Do nothing if database file exists
+            if (File.Exists(path))
+                exists = true;
+            else
+                exists = false;
+
+            var source = String.Format("Data Source = {0}; Version = 3; New = false; Compress = true", path);
             SQLiteConnection = new SQLiteConnection(source);
             SQLiteConnection.Open();
             rssFeed = feed;
@@ -55,11 +63,11 @@ namespace BigData.OCLC {
         /// </summary>
         public async Task createDatabase() {
             string path = GetDatabasePath();
-
-            // Do nothing if database file exists
-            //if (File.Exists(path))
-                //return;
       
+            // Check if DB has already been created
+            if (exists)
+                return;
+
             // Otherwise do things
             //SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
