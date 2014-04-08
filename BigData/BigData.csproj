@@ -102,11 +102,9 @@
   <ItemGroup>
     <Compile Include="App.cs" />
     <Compile Include="Cache\Database.cs" />
-    <Compile Include="ImageCollectionCanvas.cs" />
     <Compile Include="Emailer\Emailer.cs" />
     <Compile Include="InfoGrid.cs" />
     <Compile Include="MainWindow.cs" />
-    <Compile Include="OCLC\Cache.cs" />
     <Compile Include="OCLC\PublicationSource.cs" />
     <Compile Include="PublicationCanvas.cs" />
   </ItemGroup>

@@ -11,13 +11,12 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.Windows.Input;
 
-namespace BigData
-{
-    public class InfoGrid : Grid
-    {
+namespace BigData {
+    public class InfoGrid : Grid {
+
         const double EASE_IN_TIME = 0.1; // seconds
-        public InfoGrid(Publication pub)
-        {
+
+        public InfoGrid(Publication pub) {
             publication = pub;
             InitializeComponent();
         }
@@ -26,16 +25,14 @@ namespace BigData
             "Done", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(InfoGrid)
         );
 
-        public event RoutedEventHandler Done
-        {
+        public event RoutedEventHandler Done {
             add { AddHandler(DoneEvent, value); }
             remove { RemoveHandler(DoneEvent, value); }
         }
 
         private Publication publication;
 
-        void InitializeComponent()
-        {
+        void InitializeComponent() {
             Opacity = 0;
             Background = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0));
 
@@ -58,22 +55,19 @@ namespace BigData
             Loaded += AnimateIn;
         }
 
-        void AnimateIn(object sender, RoutedEventArgs e)
-        {
+        void AnimateIn(object sender, RoutedEventArgs e) {
             var animation = new DoubleAnimation(1, new Duration(TimeSpan.FromSeconds(EASE_IN_TIME)));
             var clock = animation.CreateClock();
 
             ApplyAnimationClock(Grid.OpacityProperty, clock);
         }
 
-        void AnimateOut(object sender, EventArgs e)
-        {
+        void AnimateOut(object sender, EventArgs e) {
             var animation = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromSeconds(EASE_IN_TIME)));
             var clock = animation.CreateClock();
 
             ApplyAnimationClock(Grid.OpacityProperty, clock);
-            clock.Completed += (s, e2) =>
-            {
+            clock.Completed += (s, e2) => {
                 var args = new RoutedEventArgs(InfoGrid.DoneEvent);
                 RaiseEvent(args);
             };

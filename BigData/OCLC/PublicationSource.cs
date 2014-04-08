@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BigData.OCLC
-{
-    interface PublicationSource
-    {
+namespace BigData.OCLC {
+    interface PublicationSource {
         Task<IEnumerable<Publication>> GetPublications();
     }
 }

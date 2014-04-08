@@ -16,12 +16,9 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
 
-namespace BigData
-{
-    public class MainWindow : Window
-    {
-        public MainWindow()
-        {
+namespace BigData {
+    public class MainWindow : Window {
+        public MainWindow() {
             InitializeComponent();
         }
 
@@ -32,8 +29,7 @@ namespace BigData
 
         const int MAX_TAP_TIME = 150; // ms
 
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
             Visibility = Visibility.Visible;
@@ -57,52 +53,43 @@ namespace BigData
 
             tapTimer = new Stopwatch();
 
-            MouseDown += (sender, e) =>
-            {
+            MouseDown += (sender, e) => {
                 activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
                 views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
                 tapTimer.Restart();
             };
-            TouchDown += (sender, e) =>
-            {
+            TouchDown += (sender, e) => {
                 activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y % (this.Height / 3));
                 views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
                 tapTimer.Restart();
             };
 
-            MouseUp += (sender, e) =>
-            {
+            MouseUp += (sender, e) => {
                 views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
                 tapTimer.Stop();
 
-                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME)
-                {
+                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
                     ShowPublicationAtPoint(e.GetPosition(this));
                 }
             };
-            TouchUp += (sender, e) =>
-            {
+            TouchUp += (sender, e) => {
                 views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
                 tapTimer.Stop();
 
-                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME)
-                {
+                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
                     ShowPublicationAtPoint(e.GetTouchPoint(this).Position);
                 }
             };
 
-            MouseMove += (sender, e) =>
-            {
+            MouseMove += (sender, e) => {
                 views[activeViewIndex].TrackTouch(e.GetPosition(this).X);
             };
-            TouchMove += (sender, e) =>
-            {
+            TouchMove += (sender, e) => {
                 views[activeViewIndex].TrackTouch(e.GetTouchPoint(this).Position.X);
             };
         }
 
-        async void PopulateDisplay(object sender, RoutedEventArgs e)
-        {
+        async void PopulateDisplay(object sender, RoutedEventArgs e) {
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             await src.createDatabase();
             var publications = (await src.GetPublications()).ToArray();
@@ -115,15 +102,13 @@ namespace BigData
             views[1] = new PublicationCanvas(publications.Skip(imagesPerRow).Take(imagesPerRow).ToArray(), Height / 3);
             views[2] = new PublicationCanvas(publications.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray(), Height / 3);
 
-            for (int i = 0; i < views.Length; i++)
-            {
+            for (int i = 0; i < views.Length; i++) {
                 Grid.SetRow(views[i], i);
                 grid.Children.Add(views[i]);
             }
         }
 
-        void ShowPublicationAtPoint(Point point)
-        {
+        void ShowPublicationAtPoint(Point point) {
             int index = (int)(point.Y * 3 / this.Height);
             var pub = views[index].GetPublicationAtPoint(point.X);
 
@@ -132,14 +117,12 @@ namespace BigData
             Grid.SetRowSpan(view, 3);
             grid.Children.Add(view);
 
-            view.Done += (s, e) =>
-            {
+            view.Done += (s, e) => {
                 grid.Children.Remove(view);
             };
         }
 
-        private void OnKeyUp(object sender, KeyEventArgs args)
-        {
+        private void OnKeyUp(object sender, KeyEventArgs args) {
             if (args.Key == Key.Q) Close();
         }
     }

@@ -21,7 +21,7 @@ namespace BigData.OCLC {
         private string wsKey;
         private uint count;
         private bool exists;
-        
+
         /// <summary>
         /// Create a database instance.
         /// </summary>
@@ -57,13 +57,13 @@ namespace BigData.OCLC {
 
             return Path.Combine(appData, "publications.db");
         }
-        
+
         /// <summary>
         /// Creates the Publication and Author tables.
         /// </summary>
         public async Task createDatabase() {
             string path = GetDatabasePath();
-      
+
             // Check if DB has already been created
             if (exists)
                 return;
@@ -71,11 +71,11 @@ namespace BigData.OCLC {
             // Otherwise do things
             //SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
-                              "id INT, " + 
+                              "id INT, " +
                               "isbn TEXT, " +
                               "title TEXT, " +
                               "link TEXT, " +
-                              "desc TEXT, " + 
+                              "desc TEXT, " +
                               "cover BLOB" +
                               ")";
             string AuthorTable = "CREATE TABLE Authors(" +
@@ -87,7 +87,7 @@ namespace BigData.OCLC {
 
             await updateDatabase();
         }
-        
+
         /// <summary>
         /// Gets publication data from the OCLC client and stores it into the database.
         /// </summary>
@@ -98,16 +98,16 @@ namespace BigData.OCLC {
             this.ExecuteSQLiteCommand(deleteQuery);
             deleteQuery = "DELETE FROM Authors;";
             this.ExecuteSQLiteCommand(deleteQuery);
-            
+
             // Now insert new entries
             Client oclc = new Client(this.wsKey, this.rssFeed);
             var pubList = await oclc.GetPublications();
             this.count = 0;
-            
+
             string InsertQuery;
             foreach (var pub in pubList) {
                 // Insert publication
-                InsertQuery =  "INSERT INTO Publications VALUES (" +
+                InsertQuery = "INSERT INTO Publications VALUES (" +
                                "(@id), " +
                                "(@isbn), " +
                                "(@title), " +
@@ -115,10 +115,10 @@ namespace BigData.OCLC {
                                "(@desc), " +
                                "(@cover)" +
                                ");";
-                
+
                 // Adding parameters
                 SQLiteCommand = new SQLiteCommand(InsertQuery, SQLiteConnection);
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count)); 
+                SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@link", "google.com"));
@@ -197,13 +197,13 @@ namespace BigData.OCLC {
             string query = "SELECT isbn FROM Publications;";
             SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
             while (reader.Read()) {
-                s = s + "Entry: " + reader["isbn"] + 
+                s = s + "Entry: " + reader["isbn"] +
                         "\n\tTitle:\t" + reader["title"] + "\n";
             }
 
             return s;
         }
-        
+
         /// <summary>
         /// Pulls all information from all publications from the database.
         /// </summary>
@@ -214,19 +214,19 @@ namespace BigData.OCLC {
             int count = 0;
             string query = "SELECT * FROM Publications;";
             SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
-        
+
             while (reader.Read()) {
                 Publication pub = new Publication();
-                pub.Title = (string) reader["title"];
+                pub.Title = (string)reader["title"];
                 pub.ISBNs = new List<string>();
-                pub.ISBNs.Add((string) reader["isbn"]);
+                pub.ISBNs.Add((string)reader["isbn"]);
                 if (reader["desc"].GetType() != typeof(DBNull))
-                    pub.Description = (string) reader["desc"];
+                    pub.Description = (string)reader["desc"];
 
                 Console.WriteLine(pub.Title);
 
                 // Get the cover
-                MemoryStream ms = new MemoryStream((byte[]) reader["cover"]);
+                MemoryStream ms = new MemoryStream((byte[])reader["cover"]);
                 pub.CoverImage = new BitmapImage();
                 pub.CoverImage.BeginInit();
                 pub.CoverImage.StreamSource = ms;
@@ -239,14 +239,14 @@ namespace BigData.OCLC {
                 pub.Authors = new List<string>();
                 while (authorReader.Read()) {
                     Console.WriteLine("\t" + authorReader["author"]);
-                    if (authorReader["author"].GetType() != typeof(DBNull)) 
-                        pub.Authors.Add((string) authorReader["author"]);
+                    if (authorReader["author"].GetType() != typeof(DBNull))
+                        pub.Authors.Add((string)authorReader["author"]);
                 }
 
                 PubList.Add(pub);
                 count++;
             }
-            
+
             return PubList;
         }
 

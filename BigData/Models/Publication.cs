@@ -8,12 +8,10 @@ using System.Xml.Serialization;
 using System.IO;
 
 
-namespace BigData
-{
-    public class Publication
-    {
-        public static Publication FromXML(XDocument doc)
-        {
+namespace BigData {
+    public class Publication {
+
+        public static Publication FromXML(XDocument doc) {
             var pub = new Publication();
             pub.Title = GetOCLCFieldByTag(titleTag, doc);
             pub.Description = GetOCLCFieldByTag(descTag, doc);
@@ -28,16 +26,13 @@ namespace BigData
             return pub;
         }
 
-        public override string ToString()
-        {
+        public override string ToString() {
             return String.Format("BigData.Publication<Title: {0}, ISBN: {1}>", this.Title, this.ISBNs.First());
         }
 
-        public string Title
-        {
+        public string Title {
             get { return title; }
-            set
-            {
+            set {
                 var ti = new System.Globalization.CultureInfo("en-US").TextInfo;
                 title = ti.ToTitleCase(value);
             }
@@ -53,8 +48,7 @@ namespace BigData
 
         [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
         [XmlElement("CoverImage")]
-        public byte[] CoverImageSerialized
-        {
+        public byte[] CoverImageSerialized {
             get // serialize
             {
                 if (CoverImage == null) return null;
@@ -62,7 +56,7 @@ namespace BigData
                 var buffer = new byte[CoverImage.StreamSource.Length];
                 CoverImage.StreamSource.Read(buffer, 0, buffer.Length);
                 return buffer;
-                
+
                 /*
                 var stride = CoverImage.Format.BitsPerPixel * CoverImage.PixelWidth;
                 var bytes = new byte[stride * CoverImage.PixelHeight];
@@ -72,14 +66,10 @@ namespace BigData
             }
             set // deserialize
             {
-                if (value == null)
-                {
+                if (value == null) {
                     CoverImage = null;
-                }
-                else
-                {
-                    using (var ms = new MemoryStream(value))
-                    {
+                } else {
+                    using (var ms = new MemoryStream(value)) {
                         CoverImage = new BitmapImage();
                         CoverImage.BeginInit();
                         CoverImage.StreamSource = ms;
@@ -90,11 +80,9 @@ namespace BigData
             }
         }
 
-        public List<string> ISBNs
-        {
+        public List<string> ISBNs {
             get { return isbns; }
-            set
-            {
+            set {
                 isbns = (from isbn in value
                          where isbn != null
                          select isbn.Split(new char[] { ' ' }, 2).First())
@@ -102,24 +90,19 @@ namespace BigData
             }
         }
 
-        private static string GetOCLCFieldByTag(string tag, XDocument doc)
-        {
+        private static string GetOCLCFieldByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
-            try
-            {
+            try {
                 return (from datafield in doc.Descendants(ns + "datafield")
                         where datafield.Attribute("tag").Value.Equals(tag)
                         select datafield.Descendants().First().Value)
                         .First();
-            }
-            catch (InvalidOperationException)
-            {
+            } catch (InvalidOperationException) {
                 return null;
             }
         }
 
-        private static List<string> GetOCLCFieldsByTag(string tag, XDocument doc)
-        {
+        private static List<string> GetOCLCFieldsByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
             return (from datafield in doc.Descendants(ns + "datafield")
                     where datafield.Attribute("tag").Value.Equals(tag)

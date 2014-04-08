@@ -9,19 +9,17 @@ using System.Net;
 using System.Windows.Media.Imaging;
 using System.IO;
 
-namespace BigData.OCLC
-{
+namespace BigData.OCLC {
     /// <summary>
     /// Manage access to the OCLC APIs.
     /// </summary>
-    public class Client : PublicationSource
-    {
+    public class Client : PublicationSource {
+
         /// <summary>
         /// Create a new OCLCClient.
         /// </summary>
         /// <param name="key">The WSKey to use to access OCLC APIs</param>
-        public Client(string key, string feedUri)
-        {
+        public Client(string key, string feedUri) {
             WSKey = key;
             FeedUri = feedUri;
         }
@@ -30,8 +28,7 @@ namespace BigData.OCLC
         /// Fetch publications from OCLC RSS
         /// </summary>
         /// <returns>An array of publications from the OCLC RSS API</returns>
-        public async Task<IEnumerable<Publication>> GetPublications()
-        {
+        public async Task<IEnumerable<Publication>> GetPublications() {
             var doc = XDocument.Load(FeedUri);
             var tasks = from item in doc.Descendants("item")
                         let uri = new Uri(item.Element("link").Value)
@@ -51,8 +48,7 @@ namespace BigData.OCLC
         /// </summary>
         public string FeedUri { get; set; }
 
-        private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber)
-        {
+        private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber) {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
             var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
 
@@ -66,21 +62,19 @@ namespace BigData.OCLC
             var allISBNs = await FetchRelatedISBNs(pub.ISBNs);
             coverImage image = CoverImageForISBNs(allISBNs);
             pub.CoverImage = image.image;
-            pub.CoverImageURI  = image.uri;
+            pub.CoverImageURI = image.uri;
 
             return pub;
         }
 
-        private async Task<string[]> FetchRelatedISBNs(IEnumerable<string> isbns)
-        {
+        private async Task<string[]> FetchRelatedISBNs(IEnumerable<string> isbns) {
             var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/isbn/");
 
             var requestUri = new Uri(baseUri, isbns.First() + @"?method=getEditions&format=xml");
 
             var request = WebRequest.Create(requestUri);
             XNamespace ns = @"http://worldcat.org/xid/isbn/";
-            try
-            {
+            try {
                 var response = await request.GetResponseAsync();
                 var doc = XDocument.Load(response.GetResponseStream());
                 return (from tag in doc.Descendants(ns + "isbn")
@@ -88,29 +82,24 @@ namespace BigData.OCLC
                        .Concat(isbns)
                        .Distinct()
                        .ToArray();
-            }
-            catch (WebException)
-            {
+            } catch (WebException) {
                 return isbns.ToArray();
             }
         }
 
-        private coverImage CoverImageForISBNs(string[] isbns)
-        {
+        private coverImage CoverImageForISBNs(string[] isbns) {
             var baseUri = new Uri(@"http://covers.openlibrary.org/b/isbn/");
             var requestUris = (from isbn in isbns
-                              select new Uri(baseUri, isbn + @"-L.jpg?default=false"))
+                               select new Uri(baseUri, isbn + @"-L.jpg?default=false"))
                               .ToList();
 
             // make sure there is always one good URI
             requestUris.Add(new Uri(@"http://placehold.it/250x400"));
 
-            foreach (var uri in requestUris)
-            {
+            foreach (var uri in requestUris) {
                 Console.WriteLine(uri.ToString());
                 var request = WebRequest.Create(uri);
-                try
-                {
+                try {
                     var response = request.GetResponse();
 
                     var ms = new MemoryStream();
@@ -124,24 +113,20 @@ namespace BigData.OCLC
                     image.EndInit();
                     image.Freeze();
 
-                    if (image.PixelHeight >= 300)
-                    {
+                    if (image.PixelHeight >= 300) {
                         return new coverImage(image, uri.ToString());
                     }
-                }
-                catch (WebException) { }
+                } catch (WebException) { }
             }
 
             throw new Exception("No cover images");
         }
     }
-    public struct coverImage
-    {
+    public struct coverImage {
         public BitmapImage image;
         public String uri;
 
-        public coverImage(BitmapImage x, String y)
-        {
+        public coverImage(BitmapImage x, String y) {
             image = x;
             uri = y;
         }
