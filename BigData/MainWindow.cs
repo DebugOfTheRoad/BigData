@@ -14,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Diagnostics;
 
 namespace BigData
 {
@@ -24,9 +25,12 @@ namespace BigData
             InitializeComponent();
         }
 
-        private Canvas canvas;
-        private WrappingCollectionView[] views;
+        private Grid grid;
+        private PublicationCanvas[] views;
         private int activeViewIndex;
+        private Stopwatch tapTimer;
+
+        const int MAX_TAP_TIME = 150; // ms
 
         private void InitializeComponent()
         {
@@ -38,27 +42,53 @@ namespace BigData
             KeyUp += OnKeyUp;
             Loaded += PopulateDisplay;
 
-            canvas = new Canvas();
-            Content = canvas;
+            grid = new Grid();
+            Content = grid;
+
+            ColumnDefinition col = new ColumnDefinition();
+            grid.ColumnDefinitions.Add(col);
+
+            RowDefinition row1 = new RowDefinition();
+            RowDefinition row2 = new RowDefinition();
+            RowDefinition row3 = new RowDefinition();
+            grid.RowDefinitions.Add(row1);
+            grid.RowDefinitions.Add(row2);
+            grid.RowDefinitions.Add(row3);
+
+            tapTimer = new Stopwatch();
 
             MouseDown += (sender, e) =>
             {
                 activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
                 views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
+                tapTimer.Restart();
             };
             TouchDown += (sender, e) =>
             {
                 activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y % (this.Height / 3));
                 views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
+                tapTimer.Restart();
             };
 
             MouseUp += (sender, e) =>
             {
                 views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
+                tapTimer.Stop();
+
+                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME)
+                {
+                    ShowPublicationAtPoint(e.GetPosition(this));
+                }
             };
             TouchUp += (sender, e) =>
             {
                 views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
+                tapTimer.Stop();
+
+                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME)
+                {
+                    ShowPublicationAtPoint(e.GetTouchPoint(this).Position);
+                }
             };
 
             MouseMove += (sender, e) =>
@@ -73,29 +103,39 @@ namespace BigData
 
         async void PopulateDisplay(object sender, RoutedEventArgs e)
         {
-            //OCLC.PublicationSource src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
-            //OCLC.PublicationSource src = new OCLC.Cache(@"C:\Users\davis\Documents\GitHub\BigData\BigData\bin\Debug\cache.dat");
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             await src.createDatabase();
-            var publications = await src.GetPublications();
+            var publications = (await src.GetPublications()).ToArray();
 
-            var allImages = (from pub in publications
-                             select new Image() { Source = pub.CoverImage, Height = this.Height / 3 }).ToArray();
+            var imagesPerRow = publications.Length / 3;
 
-            var imagesPerRow = allImages.Length / 3;
+            views = new PublicationCanvas[3];
 
-            views = new WrappingCollectionView[3];
+            views[0] = new PublicationCanvas(publications.Take(imagesPerRow).ToArray(), Height / 3);
+            views[1] = new PublicationCanvas(publications.Skip(imagesPerRow).Take(imagesPerRow).ToArray(), Height / 3);
+            views[2] = new PublicationCanvas(publications.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray(), Height / 3);
 
-            views[0] = new WrappingCollectionView(allImages.Take(imagesPerRow).ToArray());
-            canvas.Children.Add(views[0]);
+            for (int i = 0; i < views.Length; i++)
+            {
+                Grid.SetRow(views[i], i);
+                grid.Children.Add(views[i]);
+            }
+        }
 
-            views[1] = new WrappingCollectionView(allImages.Skip(imagesPerRow).Take(imagesPerRow).ToArray());
-            canvas.Children.Add(views[1]);
-            Canvas.SetTop(views[1], Height / 3);
+        void ShowPublicationAtPoint(Point point)
+        {
+            int index = (int)(point.Y * 3 / this.Height);
+            var pub = views[index].GetPublicationAtPoint(point.X);
 
-            views[2] = new WrappingCollectionView(allImages.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray());
-            canvas.Children.Add(views[2]);
-            Canvas.SetTop(views[2], 2 * Height / 3);
+            var view = new InfoGrid(pub);
+            Grid.SetRow(view, 0);
+            Grid.SetRowSpan(view, 3);
+            grid.Children.Add(view);
+
+            view.Done += (s, e) =>
+            {
+                grid.Children.Remove(view);
+            };
         }
 
         private void OnKeyUp(object sender, KeyEventArgs args)

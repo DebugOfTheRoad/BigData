@@ -14,7 +14,7 @@ using System.Windows.Input;
 
 namespace BigData
 {
-    public class WrappingCollectionView : Canvas
+    public class PublicationCanvas : Canvas
     {
         const double RESTING_VELOCITY = 0.1; // pixels per frame
         const double DECELERATE_COEF = 0.9;
@@ -22,10 +22,30 @@ namespace BigData
         const double MOUSE_WAIT_TIME = 16; // milliseconds
         const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
 
-        public WrappingCollectionView(Image[] images)
+        public PublicationCanvas(Publication[] pubs, double height)
         {
-            this.images = images;
+            publications = pubs.ToDictionary(
+                p => new Image() { Source = p.CoverImage, Height = height },
+                p => p
+            );
             InitializeComponent();
+        }
+
+        public Publication GetPublicationAtPoint(double x)
+        {
+            x -= RENDER_TRANSFORM;
+            foreach (var image in Children.OfType<Image>())
+            {
+                var left = Canvas.GetLeft(image);
+                var right = left + image.ActualWidth;
+
+                if (left < x && right > x)
+                {
+                    return publications[image];
+                }
+            }
+
+            throw new Exception("No publication at given point");
         }
 
         public void BeginTouchTracking(double position)
@@ -80,8 +100,8 @@ namespace BigData
             timer.Start();
         }
 
-        private Image[] images;
         private bool isMouseDown;
+        private Dictionary<Image, Publication> publications;
         private Dictionary<Image, double> startingPositions;
         private double dragBegin;
         private double scrollVelocity;
@@ -96,13 +116,13 @@ namespace BigData
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
             scrollVelocity = RESTING_VELOCITY;
 
-            tileWidth = images.Aggregate(
+            tileWidth = publications.Keys.Aggregate(
                 0.0,
                 (acc, im) => acc + (im.Height / im.Source.Height) * im.Source.Width
             );
 
             double offset = 0;
-            foreach (var image in images)
+            foreach (var image in publications.Keys)
             {
                 Children.Add(image);
                 Canvas.SetLeft(image, offset);
