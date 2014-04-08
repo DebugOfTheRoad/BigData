@@ -43,42 +43,7 @@ namespace BigData {
         public List<string> Authors { get; set; }
         public string CoverImageURI { get; set; }
 
-        [XmlIgnore]
         public BitmapImage CoverImage { get; set; }
-
-        [Browsable(false), EditorBrowsable(EditorBrowsableState.Never)]
-        [XmlElement("CoverImage")]
-        public byte[] CoverImageSerialized {
-            get // serialize
-            {
-                if (CoverImage == null) return null;
-                CoverImage.StreamSource.Seek(0, SeekOrigin.Begin);
-                var buffer = new byte[CoverImage.StreamSource.Length];
-                CoverImage.StreamSource.Read(buffer, 0, buffer.Length);
-                return buffer;
-
-                /*
-                var stride = CoverImage.Format.BitsPerPixel * CoverImage.PixelWidth;
-                var bytes = new byte[stride * CoverImage.PixelHeight];
-                CoverImage.CopyPixels(bytes, stride, 0);
-                return bytes;
-                 */
-            }
-            set // deserialize
-            {
-                if (value == null) {
-                    CoverImage = null;
-                } else {
-                    using (var ms = new MemoryStream(value)) {
-                        CoverImage = new BitmapImage();
-                        CoverImage.BeginInit();
-                        CoverImage.StreamSource = ms;
-                        CoverImage.EndInit();
-                        CoverImage.Freeze();
-                    }
-                }
-            }
-        }
 
         public List<string> ISBNs {
             get { return isbns; }
