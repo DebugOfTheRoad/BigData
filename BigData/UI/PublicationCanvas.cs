@@ -12,7 +12,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.Windows.Input;
 
-namespace BigData {
+namespace BigData.UI {
     public class PublicationCanvas : Canvas {
         const double RESTING_VELOCITY = 0.1; // pixels per frame
         const double DECELERATE_COEF = 0.9;

@@ -10,8 +10,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.Windows.Input;
+using System.Windows.Documents;
 
-namespace BigData {
+namespace BigData.UI {
     public class InfoGrid : Grid {
 
         const double EASE_IN_TIME = 0.1; // seconds
@@ -42,11 +43,52 @@ namespace BigData {
             RowDefinitions.Add(new RowDefinition());
             RowDefinitions.Add(new RowDefinition());
 
-            var image = new Image() { Source = publication.CoverImage };
+            var image = new Image() {
+                Source = publication.CoverImage,
+                Margin = new Thickness { Left = 0, Right = 0, Top = 200, Bottom = 200 },
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
             Grid.SetRow(image, 0);
             Grid.SetRowSpan(image, RowDefinitions.Count);
             Grid.SetColumn(image, 0);
             Children.Add(image);
+
+            var label = new DetailLabel {
+                Content = "Borrow Now ›"
+            };
+            label.MouseUp += (sender, args) => {
+                Console.WriteLine(publication.Title);
+                args.Handled = true;
+            };
+            Grid.SetRow(label, 2);
+            Grid.SetColumn(label, 1);
+            Children.Add(label);
+
+            var title = new TextBlock {
+                Text = publication.Title,
+                Foreground = Brushes.White,
+                FontSize = 48,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(50, 50, 50, 0),
+                VerticalAlignment = System.Windows.VerticalAlignment.Bottom
+            };
+            Grid.SetRow(title, 0);
+            Grid.SetColumn(title, 1);
+            Children.Add(title);
+
+            var author = new TextBlock {
+                Text = publication.Authors.First(),
+                Foreground = Brushes.White,
+                FontSize = 40,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(50, 20, 50, 0),
+                VerticalAlignment = System.Windows.VerticalAlignment.Top
+            };
+            Grid.SetRow(author, 1);
+            Grid.SetColumn(author, 1);
+            Children.Add(author);
 
             // capture all mouse events
             MouseUp += (sender, e) => { e.Handled = true; AnimateOut(sender, e); };

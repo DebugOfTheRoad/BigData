@@ -10,7 +10,7 @@ namespace BigData {
         [STAThread]
         public static void Main(string[] args) {
             var a = new App();
-            a.MainWindow = new MainWindow();
+            a.MainWindow = new UI.MainWindow();
             a.Run();
         }
     }

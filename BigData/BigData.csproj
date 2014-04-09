@@ -103,10 +103,11 @@
     <Compile Include="App.cs" />
     <Compile Include="Cache\Database.cs" />
     <Compile Include="Emailer\Emailer.cs" />
-    <Compile Include="InfoGrid.cs" />
-    <Compile Include="MainWindow.cs" />
+    <Compile Include="UI\DetailLabel.cs" />
+    <Compile Include="UI\InfoGrid.cs" />
+    <Compile Include="UI\MainWindow.cs" />
     <Compile Include="OCLC\PublicationSource.cs" />
-    <Compile Include="PublicationCanvas.cs" />
+    <Compile Include="UI\PublicationCanvas.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="OCLC\Client.cs" />

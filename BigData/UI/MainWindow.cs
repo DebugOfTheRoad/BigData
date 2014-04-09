@@ -16,7 +16,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
 
-namespace BigData {
+namespace BigData.UI {
     public class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();
