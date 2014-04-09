@@ -35,7 +35,6 @@ namespace BigData.UI {
             Visibility = Visibility.Visible;
             Title = "Digital Publication Display";
 
-            KeyUp += OnKeyUp;
             Loaded += PopulateDisplay;
 
             grid = new Grid();
@@ -117,13 +116,33 @@ namespace BigData.UI {
             Grid.SetRowSpan(view, 3);
             grid.Children.Add(view);
 
+            view.EmailSent += delegate {
+                var label = new Label {
+                    Content = "Sent!",
+                    Background = Brushes.LightGreen,
+                    FontFamily = new FontFamily("Segoe UI Light"),
+                    FontSize = 30,
+                    HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = System.Windows.VerticalAlignment.Top,
+                    VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
+                    Height = 60,
+                };
+                Grid.SetRow(label, 0);
+                Grid.SetColumn(label, 0);
+                grid.Children.Add(label);
+
+                var animation = new DoubleAnimation {
+                    From = 1,
+                    To = 0,
+                    Duration = new Duration(TimeSpan.FromSeconds(5)),
+                };
+                label.ApplyAnimationClock(Label.OpacityProperty, animation.CreateClock());
+                animation.Completed += delegate { grid.Children.Remove(label); };
+            };
+
             view.Done += (s, e) => {
                 grid.Children.Remove(view);
             };
-        }
-
-        private void OnKeyUp(object sender, KeyEventArgs args) {
-            if (args.Key == Key.Q) Close();
         }
     }
 }

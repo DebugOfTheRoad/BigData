@@ -9,17 +9,18 @@ using System.Xml;
 using Newtonsoft.Json;
 using Nustache.Core;
 using System.Windows.Media.Imaging;
+using System.IO;
 
 
 namespace BigData.Emailer {
     public class Emailer {
-        public static void emailSend(string username, Publication pub) {
+        public static async void emailSend(string username, Publication pub) {
             var fromAddress = new MailAddress(Properties.Settings.Default.MailFrom, Properties.Settings.Default.MailName);
             var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
             string fromPassword = Properties.Settings.Default.MailPassword;
             string subject = "Here is your eBook!: " + pub.Title; // Should probably get something less lame here            
 
-            string body = getMessageBody(getName(username), pub);
+            string body = getMessageBody(await getName(username), pub);
 
             var smtp = new SmtpClient {
                 Host = "smtp.gmail.com",
@@ -35,17 +36,21 @@ namespace BigData.Emailer {
                 IsBodyHtml = true
             }) {
                 try {
-                    smtp.Send(message);
+                    await smtp.SendMailAsync(message);
+                    Console.WriteLine("Sent to " + toAddress);
                 } catch (Exception e) {
                     Console.WriteLine("Error: " + e);
                 }
             }
         }
 
-        private static string getName(String username) {
-            String URL = @"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username;
-            WebClient client = new WebClient();
-            string json = client.DownloadString(URL);
+        private static async Task<string> getName(String username) {
+            var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
+            var request = WebRequest.CreateHttp(uri);
+            var response = await request.GetResponseAsync();
+            
+            var sr = new StreamReader(response.GetResponseStream());
+            string json = await sr.ReadToEndAsync();
             List<dynamic> result = JsonConvert.DeserializeObject<List<dynamic>>(json);
             String name = result.First().givenname[0];
             name = name.Split(' ')[0];

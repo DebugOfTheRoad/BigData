@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Diagnostics;
 
 namespace BigData.UI {
     class DetailLabel : Label {
@@ -38,6 +39,8 @@ namespace BigData.UI {
                 Brush.OpacityProperty,
                 animation.CreateClock()
             );
+
+            Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
         }
     }
 }
