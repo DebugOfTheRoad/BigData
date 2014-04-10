@@ -10,6 +10,7 @@ using System.IO;
 
 namespace BigData {
     public class Publication {
+        public enum SearchField { ISBN, Title, Desc };
 
         public static Publication FromXML(XDocument doc) {
             var pub = new Publication();

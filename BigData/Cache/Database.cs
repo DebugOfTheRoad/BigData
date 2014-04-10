@@ -204,16 +204,9 @@ namespace BigData.OCLC {
             return s;
         }
 
-        /// <summary>
-        /// Pulls all information from all publications from the database.
-        /// </summary>
-        /// <returns>An array of the complete list of publications.</returns>
-        public async Task<IEnumerable<Publication>> GetPublications() {
+        private List<Publication> getPublicationsFromReader(SQLiteDataReader reader) {
             var PubList = new List<Publication>();
-
             int count = 0;
-            string query = "SELECT * FROM Publications;";
-            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
 
             while (reader.Read()) {
                 Publication pub = new Publication();
@@ -234,7 +227,7 @@ namespace BigData.OCLC {
                 pub.CoverImage.Freeze();
 
                 // Get the authors
-                query = "SELECT author FROM Authors WHERE id = " + count + ";";
+                string query = "SELECT author FROM Authors WHERE id = " + count + ";";
                 SQLiteDataReader authorReader = this.ExecuteSQLiteQuery(query);
                 pub.Authors = new List<string>();
                 while (authorReader.Read()) {
@@ -248,6 +241,42 @@ namespace BigData.OCLC {
             }
 
             return PubList;
+        }
+
+        /// <summary>
+        /// Pulls all information from all publications from the database.
+        /// </summary>
+        /// <returns>An array of the complete list of publications.</returns>
+        public async Task<IEnumerable<Publication>> GetPublications() {
+            string query = "SELECT * FROM Publications;";
+            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
+            return getPublicationsFromReader(reader);
+        }
+
+        /// <summary>
+        /// Pulls publications from the database based on a search query
+        /// </summary>
+        /// <param name="query">The search term</param>
+        /// <param name="field">The field that should be searched, an enum</param>
+        /// <returns></returns>
+        public async Task<IEnumerable<Publication>> GetPublicationByField(string query, Publication.SearchField field) {
+            string sqlQuery = "SELECT * FROM Publications WHERE " + field;
+            switch (field) {
+                case Publication.SearchField.ISBN:
+                    sqlQuery = sqlQuery + " = " + query;
+                    break;
+                case Publication.SearchField.Title:
+                    sqlQuery = sqlQuery + " LIKE " + query;
+                    break;
+                case Publication.SearchField.Desc:
+                    sqlQuery = sqlQuery + " LIKE " + query;
+                    break;
+            }
+
+            sqlQuery = sqlQuery + ";";
+
+            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
+            return getPublicationsFromReader(reader);
         }
 
         /// <summary>
