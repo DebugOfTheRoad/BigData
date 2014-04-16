@@ -261,7 +261,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="query">The search term</param>
         /// <param name="field">The field that should be searched, an enum</param>
-        /// <returns></returns>
+        /// <returns>An array of the publications that matched</returns>
         public async Task<IEnumerable<Publication>> GetPublicationByField(string query, Publication.SearchField field) {
             string sqlQuery = "SELECT * FROM Publications WHERE " + field;
             switch (field) {
