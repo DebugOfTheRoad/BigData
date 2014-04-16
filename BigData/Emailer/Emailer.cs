@@ -17,7 +17,14 @@ namespace BigData.Emailer {
     public class Emailer {
         public static async void emailSend(string username, Publication pub) {
             var fromAddress = new MailAddress(Properties.Settings.Default.MailFrom, Properties.Settings.Default.MailName);
-            var toAddress = new MailAddress(username + "@bucknell.edu",  await getFullName(username));
+            MailAddress toAddress;
+            try {
+                toAddress = new MailAddress(username + "@bucknell.edu", await getFullName(username));
+            }
+            catch (Exception e) {
+                Console.WriteLine("Invalid username. Email not sent.");
+                return;
+            }
             string fromPassword = Properties.Settings.Default.MailPassword;
             string subject = "Here is your eBook!: " + pub.Title;          
 
