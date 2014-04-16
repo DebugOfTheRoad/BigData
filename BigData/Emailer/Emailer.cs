@@ -26,20 +26,21 @@ namespace BigData.Emailer {
                 return;
             }
             string fromPassword = Properties.Settings.Default.MailPassword;
-            string subject = "Here is your eBook!: " + pub.Title;          
-
-            string body = getMessageBody(await getFirstName(username), pub);
+            string subject = "Here is your eBook!: " + pub.Title;
 
             MemoryStream str = new MemoryStream();
             PngBitmapEncoder encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(pub.CoverImage));
             encoder.Save(str);
             str.Position = 0;
-            
-            Attachment inline = new Attachment(str, "cover");
-            inline.ContentDisposition.Inline = true;
-            inline.ContentType.MediaType = "image/png";
-            inline.ContentType.Name = "cover.png";
+
+            var coverInline = new LinkedResource(str, "image/png");
+            string body = getMessageBody(await getFirstName(username), pub, coverInline);
+
+            //Attachment inline = new Attachment(str, "cover");
+            //inline.ContentDisposition.Inline = true;
+            //inline.ContentType.MediaType = "image/png";
+            //inline.ContentType.Name = "cover.png";
 
             var smtp = new SmtpClient {
                 Host = "smtp.gmail.com",
@@ -55,7 +56,10 @@ namespace BigData.Emailer {
                 IsBodyHtml = true
             }) {
                 try {
-                    message.Attachments.Add(inline);
+                    //message.Attachments.Add(inline);
+                    var view = AlternateView.CreateAlternateViewFromString(body, null, "text/html");
+                    view.LinkedResources.Add(coverInline);
+                    message.AlternateViews.Add(view);
                     await smtp.SendMailAsync(message);
                     Console.WriteLine("Sent to " + toAddress);
                 } catch (Exception e) {
@@ -89,14 +93,16 @@ namespace BigData.Emailer {
             return name;
         }
 
-        private static string getMessageBody(String name, Publication pub) {
+        private static string getMessageBody(String name, Publication pub, LinkedResource cover) {
             string sTemplate = "<center>Hi {{name}}! <br> Here is the link to {{pubname}}: {{link}}"
-                + "<br><a href=\"{{link}}\"><img src=\"{{coverURI}}\" alt=\"\" </a>";
+                + "<br><a href=\"{{link}}\"><img src=\"cid:{{coverURI}}\" alt=\"\"></a>"
+                + "<br><a href=\"{{link2}}\">More information on Bucknell eBooks</a></br>";
             Dictionary<string, string> data = new Dictionary<string, string>();
             data["name"] = name;
             data["pubname"] = pub.Title;
             data["link"] = "http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
-            data["coverURI"] = pub.CoverImageURI;
+            data["link2"] = "http://researchbysubject.bucknell.edu/ebooks";
+            data["coverURI"] = cover.ContentId;
             return Nustache.Core.Render.StringToString(sTemplate, data);
         }
     }
