@@ -21,6 +21,11 @@ namespace BigData.Emailer {
             string subject = "Here is your eBook!: " + pub.Title; // Should probably get something less lame here            
 
             string body = getMessageBody(await getName(username), pub);
+            string attachmentPath = "C:\\Users\\Daniel A. Eshleman\\Desktop\\wat.png";
+            Attachment inline = new Attachment(attachmentPath);
+            inline.ContentDisposition.Inline = true;
+            inline.ContentType.MediaType = "image/png";
+            inline.ContentType.Name = Path.GetFileName(attachmentPath);
 
             var smtp = new SmtpClient {
                 Host = "smtp.gmail.com",
@@ -36,6 +41,7 @@ namespace BigData.Emailer {
                 IsBodyHtml = true
             }) {
                 try {
+                    message.Attachments.Add(inline);
                     await smtp.SendMailAsync(message);
                     Console.WriteLine("Sent to " + toAddress);
                 } catch (Exception e) {
@@ -58,8 +64,8 @@ namespace BigData.Emailer {
         }
 
         private static string getMessageBody(String name, Publication pub) {
-            string sTemplate = "<center>Hey {{name}}! <br> Here is the link to {{pubname}}: {{link}}"
-                + "<br><a href=\"{{link}}\"><img src=\"{{coverURI}}\" alt=\"Wat\" </a>";
+            string sTemplate = "<center>Hi {{name}}! <br> Here is the link to {{pubname}}: {{link}}"
+                + "<br><a href=\"{{link}}\"><img src=\"{{coverURI}}\" alt=\"\" </a>";
             Dictionary<string, string> data = new Dictionary<string, string>();
             data["name"] = name;
             data["pubname"] = pub.Title;
