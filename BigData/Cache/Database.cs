@@ -12,7 +12,7 @@ using System.IO;
 
 namespace BigData.OCLC {
     /// <summary>
-    /// Manage access to the database.
+    /// Manages access to the database.
     /// </summary>
     public class Database : PublicationSource {
         private SQLiteConnection SQLiteConnection;
@@ -69,7 +69,6 @@ namespace BigData.OCLC {
                 return;
 
             // Otherwise do things
-            //SQLiteConnection.CreateFile(path);
             string PubTable = "CREATE TABLE Publications(" +
                               "id INT, " +
                               "isbn TEXT, " +
@@ -128,9 +127,6 @@ namespace BigData.OCLC {
                 byte[] cover = BitmapToByteArray(pub.CoverImage);
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@cover", cover));
                 SQLiteCommand.ExecuteNonQuery();
-
-                // Dan is gon learn today... bout this long dick!
-                //if (pub_list[i].authors == null) continue;
 
                 // Insert authors
                 for (int j = 0; j < pub.Authors.Count; j++) {
@@ -204,6 +200,12 @@ namespace BigData.OCLC {
             return s;
         }
 
+        /// <summary>
+        /// Parses a Sqlite data reader for the publication information and 
+        /// creates a list of publications from it.
+        /// </summary>
+        /// <param name="reader">The SQLiteDataReader to be parsed</param>
+        /// <returns>A list of publications</returns>
         private List<Publication> getPublicationsFromReader(SQLiteDataReader reader) {
             var PubList = new List<Publication>();
             int count = 0;
