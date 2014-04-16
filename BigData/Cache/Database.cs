@@ -74,7 +74,7 @@ namespace BigData.OCLC {
                               "id INT, " +
                               "isbn TEXT, " +
                               "title TEXT, " +
-                              "link TEXT, " +
+                              "oclc TEXT, " +
                               "desc TEXT, " +
                               "cover BLOB" +
                               ")";
@@ -111,7 +111,7 @@ namespace BigData.OCLC {
                                "(@id), " +
                                "(@isbn), " +
                                "(@title), " +
-                               "(@link), " +
+                               "(@oclc), " +
                                "(@desc), " +
                                "(@cover)" +
                                ");";
@@ -121,7 +121,7 @@ namespace BigData.OCLC {
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@link", "google.com"));
+                SQLiteCommand.Parameters.Add(new SQLiteParameter("@oclc", pub.OCLCNumber));
                 SQLiteCommand.Parameters.Add(new SQLiteParameter("@desc", pub.Description));
 
                 // Adding cover to query
@@ -218,6 +218,7 @@ namespace BigData.OCLC {
             while (reader.Read()) {
                 Publication pub = new Publication();
                 pub.Title = (string)reader["title"];
+                pub.OCLCNumber = (string)reader["oclc"];
                 pub.ISBNs = new List<string>();
                 pub.ISBNs.Add((string)reader["isbn"]);
                 if (reader["desc"].GetType() != typeof(DBNull))
