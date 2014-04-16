@@ -12,20 +12,27 @@ using System.Windows.Media.Imaging;
 using System.IO;
 
 
+
 namespace BigData.Emailer {
     public class Emailer {
         public static async void emailSend(string username, Publication pub) {
             var fromAddress = new MailAddress(Properties.Settings.Default.MailFrom, Properties.Settings.Default.MailName);
-            var toAddress = new MailAddress(username + "@bucknell.edu", "To Name");
+            var toAddress = new MailAddress(username + "@bucknell.edu",  await getFullName(username));
             string fromPassword = Properties.Settings.Default.MailPassword;
-            string subject = "Here is your eBook!: " + pub.Title; // Should probably get something less lame here            
+            string subject = "Here is your eBook!: " + pub.Title;          
 
-            string body = getMessageBody(await getName(username), pub);
-            string attachmentPath = "C:\\Users\\Daniel A. Eshleman\\Desktop\\wat.png";
-            Attachment inline = new Attachment(attachmentPath);
+            string body = getMessageBody(await getFirstName(username), pub);
+
+            MemoryStream str = new MemoryStream();
+            PngBitmapEncoder encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(pub.CoverImage));
+            encoder.Save(str);
+            str.Position = 0;
+            
+            Attachment inline = new Attachment(str, "cover");
             inline.ContentDisposition.Inline = true;
             inline.ContentType.MediaType = "image/png";
-            inline.ContentType.Name = Path.GetFileName(attachmentPath);
+            inline.ContentType.Name = "cover.png";
 
             var smtp = new SmtpClient {
                 Host = "smtp.gmail.com",
@@ -50,11 +57,23 @@ namespace BigData.Emailer {
             }
         }
 
-        private static async Task<string> getName(String username) {
+        private static async Task<string> getFullName(String username) {
             var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
             var request = WebRequest.CreateHttp(uri);
             var response = await request.GetResponseAsync();
             
+            var sr = new StreamReader(response.GetResponseStream());
+            string json = await sr.ReadToEndAsync();
+            List<dynamic> result = JsonConvert.DeserializeObject<List<dynamic>>(json);
+            String name = result.First().givenname[0];
+            return name;
+        }
+
+        private static async Task<string> getFirstName(String username) {
+            var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
+            var request = WebRequest.CreateHttp(uri);
+            var response = await request.GetResponseAsync();
+
             var sr = new StreamReader(response.GetResponseStream());
             string json = await sr.ReadToEndAsync();
             List<dynamic> result = JsonConvert.DeserializeObject<List<dynamic>>(json);
@@ -73,6 +92,5 @@ namespace BigData.Emailer {
             data["coverURI"] = pub.CoverImageURI;
             return Nustache.Core.Render.StringToString(sTemplate, data);
         }
-
     }
 }
