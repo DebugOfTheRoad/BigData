@@ -100,7 +100,7 @@ namespace BigData.UI {
                 FontSize = 40,
                 FontFamily = new FontFamily("Segoe UI Light"),
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(50, 100, 50, 0),
+                Margin = new Thickness(50, 50, 50, 0),
             };
             
             panel.Children.Add(label);
