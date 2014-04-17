@@ -102,8 +102,8 @@ namespace BigData.Emailer {
             Dictionary<string, string> data = new Dictionary<string, string>();
             data["name"] = name;
             data["pubname"] = pub.Title;
-            data["link"] = "http://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
-            data["link2"] = "http://researchbysubject.bucknell.edu/ebooks";
+            data["link"] = "https://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
+            data["link2"] = "https://researchbysubject.bucknell.edu/ebooks";
             data["coverURI"] = cover.ContentId;
             return Nustache.Core.Render.StringToString(sTemplate, data);
         }
