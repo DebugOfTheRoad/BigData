@@ -78,7 +78,7 @@ namespace BigData.OCLC {
             doc.Load(response.GetResponseStream());
             var img = doc.DocumentNode.SelectSingleNode(@"//*[@id='cover']/img");
 
-            var src = img.Attributes["src"].Value;
+            var src = img.Attributes["src"].Value.Replace("_140.jpg", "_400.jpg");
             return new Uri(baseUri.Scheme + ":" + src);
         }
 
