@@ -15,6 +15,12 @@ using System.IO;
 
 namespace BigData.Emailer {
     public class Emailer {
+
+        /// <summary>
+        /// Sends follow-up email to Library patron
+        /// </summary>
+        /// <param name="username">Bucknell username of patron</param>
+        /// <param name="pub">Pulication instance to follow up</param>
         public static async void emailSend(string username, Publication pub) {
             var fromAddress = new MailAddress(Properties.Settings.Default.MailFrom, Properties.Settings.Default.MailName);
             MailAddress toAddress;
@@ -37,11 +43,6 @@ namespace BigData.Emailer {
             var coverInline = new LinkedResource(str, "image/png");
             string body = getMessageBody(await getFirstName(username), pub, coverInline);
 
-            //Attachment inline = new Attachment(str, "cover");
-            //inline.ContentDisposition.Inline = true;
-            //inline.ContentType.MediaType = "image/png";
-            //inline.ContentType.Name = "cover.png";
-
             var smtp = new SmtpClient {
                 Host = "smtp.gmail.com",
                 Port = 587,
@@ -56,7 +57,6 @@ namespace BigData.Emailer {
                 IsBodyHtml = true
             }) {
                 try {
-                    //message.Attachments.Add(inline);
                     var view = AlternateView.CreateAlternateViewFromString(body, null, "text/html");
                     view.LinkedResources.Add(coverInline);
                     message.AlternateViews.Add(view);
@@ -68,6 +68,11 @@ namespace BigData.Emailer {
             }
         }
 
+        /// <summary>
+        /// Returns the full name of a person in the Bucknell directory
+        /// </summary>
+        /// <param name="username">Bucknell username</param>
+        /// <returns>Full name associated with username</returns>
         private static async Task<string> getFullName(String username) {
             var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
             var request = WebRequest.CreateHttp(uri);
@@ -80,6 +85,11 @@ namespace BigData.Emailer {
             return name;
         }
 
+        /// <summary>
+        /// Returns the first name of a person in the Bucknell directory
+        /// </summary>
+        /// <param name="username">Bucknell username</param>
+        /// <returns>First name associated with username</returns>
         private static async Task<string> getFirstName(String username) {
             var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
             var request = WebRequest.CreateHttp(uri);
@@ -93,6 +103,13 @@ namespace BigData.Emailer {
             return name;
         }
 
+        /// <summary>
+        /// Provides the body of a nicely formatted follow-up email
+        /// </summary>
+        /// <param name="name">The name of the patron requesting the email</param>
+        /// <param name="pub">The Publication instance to be advertised</param>
+        /// <param name="cover">The cover image of the publications</param>
+        /// <returns>HTML body of email</returns>
         private static string getMessageBody(String name, Publication pub, LinkedResource cover) {
             string sTemplate = @"
 <p>{{name}},</p>
