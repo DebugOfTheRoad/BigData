@@ -94,9 +94,11 @@ namespace BigData.Emailer {
         }
 
         private static string getMessageBody(String name, Publication pub, LinkedResource cover) {
-            string sTemplate = "<center>Hi {{name}}! <br> Here is the link to {{pubname}}: {{link}}"
-                + "<br><a href=\"{{link}}\"><img src=\"cid:{{coverURI}}\" alt=\"\"></a>"
-                + "<br><a href=\"{{link2}}\">More information on Bucknell eBooks</a></br>";
+            string sTemplate = @"
+<p>{{name}},</p>
+<p><a href='{{link}}'>Click here</a> to borrow {{pubname}}.</p>
+<div><a href='{{link}}'><img src='cid:{{coverURI}}' /></a></div>
+<p><a href='{{link2}}'>More information on Bucknell eBooks</a></p>";
             Dictionary<string, string> data = new Dictionary<string, string>();
             data["name"] = name;
             data["pubname"] = pub.Title;
