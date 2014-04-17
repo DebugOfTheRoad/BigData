@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.XPath;
 using System.Xml.Linq;
 using System.Net;
 using System.Windows.Media.Imaging;
 using System.IO;
+using HtmlAgilityPack;
 
 namespace BigData.OCLC {
     /// <summary>
@@ -19,6 +21,7 @@ namespace BigData.OCLC {
         /// Create a new OCLCClient.
         /// </summary>
         /// <param name="key">The WSKey to use to access OCLC APIs</param>
+        /// <param name="feedUri">The RSS feed from which to fetch books</param>
         public Client(string key, string feedUri) {
             WSKey = key;
             FeedUri = feedUri;
@@ -59,76 +62,37 @@ namespace BigData.OCLC {
             var pub = Publication.FromXML(doc);
             pub.OCLCNumber = oclcNumber;
 
-            var allISBNs = await FetchRelatedISBNs(pub.ISBNs);
-            coverImage image = CoverImageForISBNs(allISBNs);
-            pub.CoverImage = image.image;
-            pub.CoverImageURI = image.uri;
+            var coverUri = await GetOCLCCoverImageUriAsync(oclcNumber);
+            pub.CoverImage = await GetBitmapImage(coverUri);
 
             return pub;
         }
 
-        private async Task<string[]> FetchRelatedISBNs(IEnumerable<string> isbns) {
-            var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/isbn/");
+        private async static Task<Uri> GetOCLCCoverImageUriAsync(string oclcNumber) {
+            var baseUri = new Uri(@"https://bucknell.worldcat.org/oclc/");
+            var oclcUri = new Uri(baseUri, oclcNumber);
+            var request = WebRequest.CreateHttp(oclcUri);
+            var response = await request.GetResponseAsync();
 
-            var requestUri = new Uri(baseUri, isbns.First() + @"?method=getEditions&format=xml");
+            var doc = new HtmlDocument();
+            doc.Load(response.GetResponseStream());
+            var img = doc.DocumentNode.SelectSingleNode(@"//*[@id='cover']/img");
 
-            var request = WebRequest.Create(requestUri);
-            XNamespace ns = @"http://worldcat.org/xid/isbn/";
-            try {
-                var response = await request.GetResponseAsync();
-                var doc = XDocument.Load(response.GetResponseStream());
-                return (from tag in doc.Descendants(ns + "isbn")
-                        select tag.Value)
-                       .Concat(isbns)
-                       .Distinct()
-                       .ToArray();
-            } catch (WebException) {
-                return isbns.ToArray();
-            }
+            var src = img.Attributes["src"].Value;
+            return new Uri(baseUri.Scheme + ":" + src);
         }
 
-        private coverImage CoverImageForISBNs(string[] isbns) {
-            var baseUri = new Uri(@"http://covers.openlibrary.org/b/isbn/");
-            var requestUris = (from isbn in isbns
-                               select new Uri(baseUri, isbn + @"-L.jpg?default=false"))
-                              .ToList();
+        private static async Task<BitmapImage> GetBitmapImage(Uri imageUri) {
+            var request = WebRequest.CreateHttp(imageUri);
+            var response = await request.GetResponseAsync();
 
-            // make sure there is always one good URI
-            requestUris.Add(new Uri(@"http://placehold.it/250x400"));
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = response.GetResponseStream();
+            image.EndInit();
 
-            foreach (var uri in requestUris) {
-                Console.WriteLine(uri.ToString());
-                var request = WebRequest.Create(uri);
-                try {
-                    var response = request.GetResponse();
-
-                    var ms = new MemoryStream();
-                    response.GetResponseStream().CopyTo(ms);
-                    ms.Seek(0, SeekOrigin.Begin);
-
-                    var image = new BitmapImage();
-                    image.BeginInit();
-                    image.CacheOption = BitmapCacheOption.OnLoad;
-                    image.StreamSource = ms;
-                    image.EndInit();
-                    image.Freeze();
-
-                    if (image.PixelHeight >= 300) {
-                        return new coverImage(image, uri.ToString());
-                    }
-                } catch (WebException) { }
-            }
-
-            throw new Exception("No cover images");
-        }
-    }
-    public struct coverImage {
-        public BitmapImage image;
-        public String uri;
-
-        public coverImage(BitmapImage x, String y) {
-            image = x;
-            uri = y;
+            return image;
         }
     }
 }

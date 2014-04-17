@@ -5,8 +5,8 @@
     <Setting Name="WSKey" Type="System.String" Scope="Application">
       <Value Profile="(Default)">XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy</Value>
     </Setting>
-    <Setting Name="RSSUri" Type="(Web Service URL)" Scope="Application">
-      <Value Profile="(Default)">https://bucknell.worldcat.org/profiles/danieleshleman/lists/3234701/rss?count=2000</Value>
+    <Setting Name="RSSUri" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">https://bucknell.worldcat.org/profiles/librarybookdisplay/lists/3233826/rss?count=2000</Value>
     </Setting>
     <Setting Name="MailFrom" Type="System.String" Scope="Application">
       <Value Profile="(Default)">librarydisplaydonotreply@gmail.com</Value>

@@ -34,9 +34,8 @@ namespace BigData.Properties {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://bucknell.worldcat.org/profiles/danieleshleman/lists/3234701/rss?count=200" +
-            "0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://bucknell.worldcat.org/profiles/librarybookdisplay/lists/3233826/rss?count" +
+            "=2000")]
         public string RSSUri {
             get {
                 return ((string)(this["RSSUri"]));

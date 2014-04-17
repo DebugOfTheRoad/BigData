@@ -11,7 +11,12 @@ namespace BigData {
         public static void Main(string[] args) {
             var a = new App();
             a.MainWindow = new UI.MainWindow();
-            a.Run();
+
+            try {
+                a.Run();
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message);
+            }
         }
     }
 }

@@ -12,11 +12,13 @@ using System.Windows.Threading;
 using System.Windows.Input;
 using System.Windows.Documents;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace BigData.UI {
     public class InfoGrid : Grid {
 
         const double EASE_IN_TIME = 0.1; // seconds
+        Process keyboardProcess;
 
         public InfoGrid(Publication pub) {
             publication = pub;
@@ -43,6 +45,7 @@ namespace BigData.UI {
 
         private Publication publication;
         private bool showingTextBox;
+        private TextBox box;
 
         void InitializeComponent() {
             showingTextBox = false;
@@ -102,7 +105,7 @@ namespace BigData.UI {
             
             panel.Children.Add(label);
 
-            var box = new TextBox {
+            box = new TextBox {
                 Margin = new Thickness(50, 0, 50, 0),
                 FontSize = 36,
                 Text = "Username",
@@ -113,37 +116,53 @@ namespace BigData.UI {
             box.KeyUp += (sender, args) => {
                 if (args.Key != Key.Enter) { return; }
                 Emailer.Emailer.emailSend(box.Text, publication);
+                AnimateOut();
                 RaiseEvent(new RoutedEventArgs(InfoGrid.EmailSentEvent));
-                RaiseEvent(new RoutedEventArgs(InfoGrid.DoneEvent));
             };
             panel.Children.Add(box);
 
-            label.MouseUp += (sender, args) => {
-
-                if (!showingTextBox) {
-                    var animation = new DoubleAnimation {
-                        From = 500,
-                        To = 0,
-                        Duration = new Duration(TimeSpan.FromSeconds(0.5)),
-                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-                    };
-                    box.RenderTransform.ApplyAnimationClock(TranslateTransform.YProperty, animation.CreateClock());
-                    showingTextBox = true;
+            label.StylusSystemGesture += (_, e) => {
+                if (e.SystemGesture == SystemGesture.Tap) {
+                    ShowTextBox();
+                    e.Handled = true;
                 }
-
-                box.SelectAll();
-                box.Focus();
-
-                Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
-                args.Handled = true;
             };
-            
+            label.MouseUp += (_, e) => {
+                e.Handled = true;
+                ShowTextBox();
+            };
 
-            // capture all mouse events
-            MouseUp += (sender, e) => { e.Handled = true; AnimateOut(sender, e); };
-            MouseDown += (sender, e) => { e.Handled = true; };
+            StylusSystemGesture += (_, e) => {
+                if (e.SystemGesture == SystemGesture.Tap) {
+                    e.Handled = true;
+                    AnimateOut();
+                }
+            };
+            MouseUp += (_, e) => {
+                e.Handled = true;
+                AnimateOut();
+            };
 
             Loaded += AnimateIn;
+        }
+
+
+        void ShowTextBox() {
+            if (!showingTextBox) {
+                var animation = new DoubleAnimation {
+                    From = 500,
+                    To = 0,
+                    Duration = new Duration(TimeSpan.FromSeconds(0.5)),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                };
+                box.RenderTransform.ApplyAnimationClock(TranslateTransform.YProperty, animation.CreateClock());
+                showingTextBox = true;
+            }
+
+            box.SelectAll();
+            box.Focus();
+
+            keyboardProcess = Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
         }
 
         void AnimateIn(object sender, RoutedEventArgs e) {
@@ -153,7 +172,7 @@ namespace BigData.UI {
             ApplyAnimationClock(Grid.OpacityProperty, clock);
         }
 
-        void AnimateOut(object sender, EventArgs e) {
+        void AnimateOut() {
             var animation = new DoubleAnimation(1, 0, new Duration(TimeSpan.FromSeconds(EASE_IN_TIME)));
             var clock = animation.CreateClock();
 
@@ -162,6 +181,17 @@ namespace BigData.UI {
                 var args = new RoutedEventArgs(InfoGrid.DoneEvent);
                 RaiseEvent(args);
             };
+
+            var window = FindWindow("IPTip_Main_Window", null);
+            const uint WM_SYSCOMMAND = 274;
+            IntPtr SC_CLOSE = (IntPtr)61536;
+            PostMessage(window, WM_SYSCOMMAND, SC_CLOSE, (IntPtr)0);
         }
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
     }
 }

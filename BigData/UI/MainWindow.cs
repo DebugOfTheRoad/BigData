@@ -15,6 +15,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
+using System.Windows.Interop;
 
 namespace BigData.UI {
     public class MainWindow : Window {
@@ -27,7 +28,7 @@ namespace BigData.UI {
         private int activeViewIndex;
         private Stopwatch tapTimer;
 
-        const int MAX_TAP_TIME = 150; // ms
+        const int MAX_TAP_TIME = 75; // ms
 
         private void InitializeComponent() {
             WindowStyle = WindowStyle.None;
@@ -51,47 +52,15 @@ namespace BigData.UI {
             grid.RowDefinitions.Add(row3);
 
             tapTimer = new Stopwatch();
-
-            MouseDown += (sender, e) => {
-                activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
-                views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
-                tapTimer.Restart();
-            };
-            TouchDown += (sender, e) => {
-                activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y % (this.Height / 3));
-                views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
-                tapTimer.Restart();
-            };
-
-            MouseUp += (sender, e) => {
-                views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
-                tapTimer.Stop();
-
-                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
-                    ShowPublicationAtPoint(e.GetPosition(this));
-                }
-            };
-            TouchUp += (sender, e) => {
-                views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
-                tapTimer.Stop();
-
-                if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
-                    ShowPublicationAtPoint(e.GetTouchPoint(this).Position);
-                }
-            };
-
-            MouseMove += (sender, e) => {
-                views[activeViewIndex].TrackTouch(e.GetPosition(this).X);
-            };
-            TouchMove += (sender, e) => {
-                views[activeViewIndex].TrackTouch(e.GetTouchPoint(this).Position.X);
-            };
         }
 
-        async void PopulateDisplay(object sender, RoutedEventArgs e) {
+        async void PopulateDisplay(object sender, RoutedEventArgs args) {
+            FlashMessage("Loading...", Brushes.LightYellow);
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             await src.createDatabase();
+            //var src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             var publications = (await src.GetPublications()).ToArray();
+            FlashMessage("Done!", Brushes.LightGreen);
 
             var imagesPerRow = publications.Length / 3;
 
@@ -105,6 +74,81 @@ namespace BigData.UI {
                 Grid.SetRow(views[i], i);
                 grid.Children.Add(views[i]);
             }
+            ///*
+            //MouseDown += (_, e) => {
+            //    activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
+            //    views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
+            //    tapTimer.Restart();
+            //};
+            // */ 
+            //TouchDown += (_, e) => {
+            //    activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y * 3 / this.Height);
+            //    views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
+            //    tapTimer.Restart();
+            //};
+
+            ///*
+            //MouseUp += (_, e) => {
+            //    views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
+            //    tapTimer.Stop();
+
+            //    if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
+            //        ShowPublicationAtPoint(e.GetPosition(this));
+            //    }
+            //};
+            // */
+            //TouchUp += (_, e) => {
+            //    views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
+            //    tapTimer.Stop();
+
+            //    if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
+            //        ShowPublicationAtPoint(e.GetTouchPoint(this).Position);
+            //    }
+            //};
+
+            ///*
+            //MouseMove += (_, e) => {
+            //    views[activeViewIndex].TrackTouch(e.GetPosition(this).X);
+            //};
+            // */ 
+            //TouchMove += (_, e) => {
+            //    views[activeViewIndex].TrackTouch(e.GetTouchPoint(this).Position.X);
+            //};
+
+            StylusSystemGesture += (s, e) => {
+                if (e.SystemGesture == SystemGesture.Tap) {
+                    ShowPublicationAtPoint(e.GetPosition(this));
+                }
+            };
+
+            MouseUp += (s, e) => {
+                ShowPublicationAtPoint(e.GetPosition(this));
+            };
+        }
+
+        void FlashMessage(string text, Brush background) {
+            var label = new Label {
+                Content = text,
+                Background = background,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                FontSize = 30,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Top,
+                VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
+                Height = 60,
+            };
+            Grid.SetRow(label, 0);
+            Grid.SetColumn(label, 0);
+            Grid.SetZIndex(label, 10); 
+            grid.Children.Add(label);
+
+            var animation = new DoubleAnimation {
+                From = 1,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromSeconds(5)),
+            };
+            label.ApplyAnimationClock(Label.OpacityProperty, animation.CreateClock());
+            animation.Completed += delegate { grid.Children.Remove(label); };
         }
 
         void ShowPublicationAtPoint(Point point) {
@@ -117,27 +161,7 @@ namespace BigData.UI {
             grid.Children.Add(view);
 
             view.EmailSent += delegate {
-                var label = new Label {
-                    Content = "Sent!",
-                    Background = Brushes.LightGreen,
-                    FontFamily = new FontFamily("Segoe UI Light"),
-                    FontSize = 30,
-                    HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = System.Windows.VerticalAlignment.Top,
-                    VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
-                    Height = 60,
-                };
-                Grid.SetRow(label, 0);
-                Grid.SetColumn(label, 0);
-                grid.Children.Add(label);
-
-                var animation = new DoubleAnimation {
-                    From = 1,
-                    To = 0,
-                    Duration = new Duration(TimeSpan.FromSeconds(5)),
-                };
-                label.ApplyAnimationClock(Label.OpacityProperty, animation.CreateClock());
-                animation.Completed += delegate { grid.Children.Remove(label); };
+                FlashMessage("Sent!", Brushes.LightGreen);
             };
 
             view.Done += (s, e) => {

@@ -42,65 +42,17 @@ namespace BigData.UI {
             throw new Exception("No publication at given point");
         }
 
-        public void BeginTouchTracking(double position) {
-            isMouseDown = true;
-            dragBegin = position;
-            lastMousePosition = position;
-            startingPositions = Children.OfType<Image>().ToDictionary(
-                im => im,
-                im => Canvas.GetLeft(im)
-            );
-        }
-
-        public void EndTouchTracking(double position) {
-            if (isMouseDown) {
-                isMouseDown = false;
-                scrollVelocity = position - lastMousePosition;
-            }
-
-            var timer = new Timer(MAX_STILL_TIME);
-            timer.Elapsed += (s, a) => {
-                if (scrollVelocity == 0) { scrollVelocity = RESTING_VELOCITY; }
-                timer.Stop();
-            };
-            timer.Start();
-        }
-
-        public void TrackTouch(double position) {
-            if (!isMouseDown) { return; }
-
-            double translation = position - dragBegin;
-            foreach (var pair in startingPositions) {
-                var image = pair.Key;
-                var startingPosition = pair.Value;
-
-                var nextX = (startingPosition + translation) % tileWidth;
-                if (nextX < 0) { nextX += tileWidth; }
-                Canvas.SetLeft(image, nextX);
-            }
-
-            var timer = new Timer(MOUSE_WAIT_TIME);
-            timer.Elapsed += (s, a) => {
-                lastMousePosition = position;
-                timer.Stop();
-            };
-            timer.Start();
-        }
-
-        private bool isMouseDown;
+        private bool isBeingManipulated;
         private Dictionary<Image, Publication> publications;
-        private Dictionary<Image, double> startingPositions;
-        private double dragBegin;
-        private double scrollVelocity;
-        private double lastMousePosition;
         private double tileWidth;
 
         void InitializeComponent() {
-            CompositionTarget.Rendering += ScrollImages;
-            CompositionTarget.Rendering += UpdateVelocity;
+            IsManipulationEnabled = true;
+           
+            //CompositionTarget.Rendering += ScrollImages;
+            //CompositionTarget.Rendering += UpdateVelocity;
 
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
-            scrollVelocity = RESTING_VELOCITY;
 
             tileWidth = publications.Keys.Aggregate(
                 0.0,
@@ -113,23 +65,39 @@ namespace BigData.UI {
                 Canvas.SetLeft(image, offset);
                 offset += (image.Height / image.Source.Height) * image.Source.Width;
             }
+
+            ManipulationStarting += (s, e) => {
+                if (e.Mode == ManipulationModes.TranslateX) {
+                    isBeingManipulated = true;
+                }
+            };
+
+            ManipulationDelta += (s, e) => {
+                var delta = e.DeltaManipulation.Translation.X;
+                ScrollImagesBy(delta);
+            };
+
+            ManipulationInertiaStarting += (s, e) => {
+                // Deceleration is 50in/s^2
+                e.TranslationBehavior.DesiredDeceleration = (50.0 * 96) / (1000 * 1000);
+            };
+
+            ManipulationCompleted += (s, e) => {
+                isBeingManipulated = false;
+            };
+
+            CompositionTarget.Rendering += delegate {
+                if (!isBeingManipulated) { ScrollImagesBy(0.1); };
+            };
         }
 
-        void ScrollImages(object sender, EventArgs e) {
-            if (isMouseDown) { return; }
+        void ScrollImagesBy(double delta) {
+            if (isBeingManipulated) { return; }
 
             foreach (var image in Children.OfType<Image>()) {
-                var nextX = (Canvas.GetLeft(image) + scrollVelocity) % tileWidth;
+                var nextX = (Canvas.GetLeft(image) + delta) % tileWidth;
                 if (nextX < 0) { nextX += tileWidth; }
                 Canvas.SetLeft(image, nextX);
-            }
-        }
-
-        void UpdateVelocity(object sender, EventArgs e) {
-            if (Math.Abs(scrollVelocity) > RESTING_VELOCITY) {
-                scrollVelocity *= DECELERATE_COEF;
-            } else {
-                scrollVelocity = RESTING_VELOCITY * Math.Sign(scrollVelocity);
             }
         }
     }
