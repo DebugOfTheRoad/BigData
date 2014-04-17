@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Timers;
+using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -60,7 +60,7 @@ namespace BigData.UI {
             await src.createDatabase();
             //var src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             var publications = (await src.GetPublications()).ToArray();
-            FlashMessage("Done!", Brushes.LightGreen);
+            FlashMessage("Loaded", Brushes.LightGreen);
 
             var imagesPerRow = publications.Length / 3;
 
@@ -126,6 +126,7 @@ namespace BigData.UI {
             };
         }
 
+        /*
         void FlashMessage(string text, Brush background) {
             var label = new Label {
                 Content = text,
@@ -150,6 +151,57 @@ namespace BigData.UI {
             label.ApplyAnimationClock(Label.OpacityProperty, animation.CreateClock());
             animation.Completed += delegate { grid.Children.Remove(label); };
         }
+         */
+
+        void FlashMessage(string text, Brush background) {
+            var label = new Label {
+                Content = text,
+                Background = background,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                FontSize = 30,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+                VerticalAlignment = System.Windows.VerticalAlignment.Top,
+                VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
+                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
+                Height = 60,
+                RenderTransform = new TranslateTransform(0, -60),
+            };
+            Grid.SetRow(label, 0);
+            Grid.SetColumn(label, 0);
+            Grid.SetZIndex(label, 10);
+            grid.Children.Add(label);
+
+            var inAnimation = new DoubleAnimation {
+                From = -60,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromSeconds(0.25)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
+            };
+            label.RenderTransform.ApplyAnimationClock(
+                TranslateTransform.YProperty,
+                inAnimation.CreateClock()
+            );
+
+            var timer = new DispatcherTimer {
+                Interval = TimeSpan.FromSeconds(5),
+            };
+            timer.Start();
+            timer.Tick += delegate {
+                timer.Stop();
+                var outAnimation = new DoubleAnimation {
+                    From = 0,
+                    To = -60,
+                    Duration = new Duration(TimeSpan.FromSeconds(0.25)),
+                    EasingFunction = new CubicEase {  EasingMode = EasingMode.EaseInOut },
+                };
+                label.RenderTransform.ApplyAnimationClock(
+                    TranslateTransform.YProperty,
+                    outAnimation.CreateClock()
+                );
+                outAnimation.Completed += delegate { grid.Children.Remove(label); };
+            };
+
+        }
 
         void ShowPublicationAtPoint(Point point) {
             int index = (int)(point.Y * 3 / this.Height);
@@ -161,7 +213,7 @@ namespace BigData.UI {
             grid.Children.Add(view);
 
             view.EmailSent += delegate {
-                FlashMessage("Sent!", Brushes.LightGreen);
+                FlashMessage("Email Sent!", Brushes.LightGreen);
             };
 
             view.Done += (s, e) => {
