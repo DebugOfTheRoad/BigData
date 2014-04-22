@@ -56,7 +56,8 @@ namespace BigData.UI {
 
         async void PopulateDisplay(object sender, RoutedEventArgs args) {
             FlashMessage("Loading...", Brushes.LightYellow);
-            var src = new OCLC.Database(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+            String RSSUri = Properties.Settings.Default.RSSUri + "rss?count=" + Properties.Settings.Default.Count;
+            var src = new OCLC.Database(Properties.Settings.Default.WSKey, RSSUri);
             await src.createDatabase();
             //var src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             var publications = (await src.GetPublications()).ToArray();
