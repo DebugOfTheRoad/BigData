@@ -12,6 +12,11 @@ namespace BigData {
     public class Publication {
         public enum SearchField { ISBN, Title, Desc };
 
+        /// <summary>
+        /// Gets a publication object from XML returned by OCLC
+        /// </summary>
+        /// <param name="doc">XDocument response from OCLC Search API</param>
+        /// <returns>A Publication object</returns>
         public static Publication FromXML(XDocument doc) {
             var pub = new Publication();
             pub.Title = GetOCLCFieldByTag(titleTag, doc);
@@ -27,10 +32,17 @@ namespace BigData {
             return pub;
         }
 
+        /// <summary>
+        /// Returns a string representing a Publication object
+        /// </summary>
+        /// <returns>A Publication object as a string</returns>
         public override string ToString() {
             return String.Format("BigData.Publication<Title: {0}, ISBN: {1}>", this.Title, this.ISBNs.First());
         }
 
+        /// <summary>
+        /// The title of the Publication
+        /// </summary>
         public string Title {
             get { return title; }
             set {
@@ -39,13 +51,34 @@ namespace BigData {
             }
         }
 
+        /// <summary>
+        /// The OCLC number of the Publication
+        /// </summary>
         public string OCLCNumber { get; set; }
+
+        /// <summary>
+        /// The description of the Publication
+        /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// The authors of the Publication
+        /// </summary>
         public List<string> Authors { get; set; }
+
+        /// <summary>
+        /// The URI of the cover image for the Publication
+        /// </summary>
         public string CoverImageURI { get; set; }
 
+        /// <summary>
+        /// A BitmapImage of the cover of the Publication
+        /// </summary>
         public BitmapImage CoverImage { get; set; }
 
+        /// <summary>
+        /// The ISBNs associated with the Publication
+        /// </summary>
         public List<string> ISBNs {
             get { return isbns; }
             set {
@@ -56,6 +89,12 @@ namespace BigData {
             }
         }
 
+        /// <summary>
+        /// Parses XDocument for a value represented by a specific tag
+        /// </summary>
+        /// <param name="tag">The tag to parse for</param>
+        /// <param name="doc">The XDocument to parse</param>
+        /// <returns>The data pointed to by the tag as a string</returns>
         private static string GetOCLCFieldByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
             try {
@@ -68,6 +107,12 @@ namespace BigData {
             }
         }
 
+        /// <summary>
+        /// Parses XDocument for multiple values represented by a specific tag
+        /// </summary>
+        /// <param name="tag">The tag to parse for</param>
+        /// <param name="doc">The XDocument to parse</param>
+        /// <returns>A list of strings representing the fields pointed to by the tag</returns>
         private static List<string> GetOCLCFieldsByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
             return (from datafield in doc.Descendants(ns + "datafield")
@@ -76,7 +121,14 @@ namespace BigData {
                     .ToList();
         }
 
+        /// <summary>
+        /// List of the isbns associated with the Publication
+        /// </summary>
         private List<string> isbns;
+
+        /// <summary>
+        /// The title of the Publication
+        /// </summary>
         private string title;
 
         private const string formTag = "655";

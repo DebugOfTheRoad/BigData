@@ -51,6 +51,11 @@ namespace BigData.OCLC {
         /// </summary>
         public string FeedUri { get; set; }
 
+        /// <summary>
+        /// Populates a publication object from an OCLC number
+        /// </summary>
+        /// <param name="oclcNumber">The OCLC number representing the material</param>
+        /// <returns>A publication object</returns>
         private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber) {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
             var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
@@ -68,6 +73,11 @@ namespace BigData.OCLC {
             return pub;
         }
 
+        /// <summary>
+        /// Returns the URI of the best available cover image for the book
+        /// </summary>
+        /// <param name="oclcNumber">The OCLC number representing the material</param>
+        /// <returns>Cover Image URI</returns>
         private async static Task<Uri> GetOCLCCoverImageUriAsync(string oclcNumber) {
             var baseUri = new Uri(@"https://bucknell.worldcat.org/oclc/");
             var oclcUri = new Uri(baseUri, oclcNumber);
@@ -82,6 +92,11 @@ namespace BigData.OCLC {
             return new Uri(baseUri.Scheme + ":" + src);
         }
 
+        /// <summary>
+        /// Returns the BitMapImage of the cover image
+        /// </summary>
+        /// <param name="imageUri">URI of the cover image</param>
+        /// <returns>Bitmap image of the cover</returns>
         private static async Task<BitmapImage> GetBitmapImage(Uri imageUri) {
             var request = WebRequest.CreateHttp(imageUri);
             var response = await request.GetResponseAsync();
