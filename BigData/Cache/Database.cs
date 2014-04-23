@@ -219,8 +219,6 @@ namespace BigData.OCLC {
                 if (reader["desc"].GetType() != typeof(DBNull))
                     pub.Description = (string)reader["desc"];
 
-                Console.WriteLine(pub.Title);
-
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[])reader["cover"]);
                 pub.CoverImage = new BitmapImage();
@@ -234,7 +232,6 @@ namespace BigData.OCLC {
                 SQLiteDataReader authorReader = this.ExecuteSQLiteQuery(query);
                 pub.Authors = new List<string>();
                 while (authorReader.Read()) {
-                    Console.WriteLine("\t" + authorReader["author"]);
                     if (authorReader["author"].GetType() != typeof(DBNull))
                         pub.Authors.Add((string)authorReader["author"]);
                 }

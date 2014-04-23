@@ -94,6 +94,16 @@ namespace BigData.UI {
             };
             panel.Children.Add(author);
 
+            var description = new TextBlock {
+                Text = publication.Description,
+                Foreground = Brushes.White,
+                FontSize = 26,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(50, 0, 200, 0),
+            };
+            panel.Children.Add(description);
+
             var label = new TextBlock {
                 Text = "Borrow Now ›",
                 Foreground = Brushes.White,
