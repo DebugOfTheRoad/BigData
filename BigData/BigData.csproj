@@ -124,6 +124,7 @@
     <Compile Include="App.cs" />
     <Compile Include="Cache\Database.cs" />
     <Compile Include="Emailer\Emailer.cs" />
+    <Compile Include="Management Interface\ManagementServer.cs" />
     <Compile Include="UI\DetailLabel.cs" />
     <Compile Include="UI\InfoGrid.cs" />
     <Compile Include="UI\MainWindow.cs" />
@@ -367,7 +368,8 @@
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Management Interface\management.html" />
+    <EmbeddedResource Include="Management Interface\management.html" />
+    <EmbeddedResource Include="Management Interface\confirmation.html" />
     <Content Include="x64\SQLite.Interop.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

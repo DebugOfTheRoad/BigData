@@ -10,6 +10,8 @@ namespace BigData {
         [STAThread]
         public static void Main(string[] args) {
             var a = new App();
+            var server = new Management_Interface.ManagementServer();
+            server.CreateServer();
             a.MainWindow = new UI.MainWindow();
 
             try {
