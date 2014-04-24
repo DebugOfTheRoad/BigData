@@ -47,7 +47,14 @@ namespace BigData.Management_Interface {
 
                     // Make changes to settings if entry is non-blank
                     if (rss != "") Properties.Settings.Default.RSSUri = rss;
-                    if (count != "") Properties.Settings.Default.Count = Convert.ToInt32(count);
+                    
+                    try {
+                        if (count != "") Properties.Settings.Default.Count = Convert.ToInt32(count);
+                    } catch (Exception e) {
+                        // fugg it
+                        Console.WriteLine("Y U No integer?: " + e);
+                    }
+
                     if (wskey != "") Properties.Settings.Default.WSKey = wskey;
                     if (email != "") Properties.Settings.Default.MailFrom = email;
                     if (password != "") Properties.Settings.Default.MailPassword = password;
