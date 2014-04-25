@@ -370,6 +370,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Management Interface\management.html" />
     <EmbeddedResource Include="Management Interface\confirmation.html" />
+    <EmbeddedResource Include="Management Interface\fail.html" />
     <Content Include="x64\SQLite.Interop.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

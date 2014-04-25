@@ -11,14 +11,17 @@ namespace BigData.Management_Interface {
     class ManagementServer {
         private static HttpListener listener = new HttpListener();
 
+
         // Finds the path to the html files in the project space
         // There is probably a better place to put them
         private static String htmlPath = Path.Combine(Environment.CurrentDirectory,
             @"..\..\Management Interface\");
         
+
         // Might want to change.
         // If so, also change in confirmation.html
         private static String pageURL = "http://localhost:5000/";
+
 
         /// <summary>
         /// The method that is called when an http request is made.
@@ -46,24 +49,25 @@ namespace BigData.Management_Interface {
                     String password = parsedForm[4].Split('=')[1];
 
                     // Make changes to settings if entry is non-blank
-                    if (rss != "") Properties.Settings.Default.RSSUri = rss;
-                    
                     try {
+                        if (rss != "") Properties.Settings.Default.RSSUri = rss;
                         if (count != "") Properties.Settings.Default.Count = Convert.ToInt32(count);
+                        if (wskey != "") Properties.Settings.Default.WSKey = wskey;
+                        if (email != "") Properties.Settings.Default.MailFrom = email;
+                        if (password != "") Properties.Settings.Default.MailPassword = password;
+
+                        // Save changes
+                        Properties.Settings.Default.Save();
+
+                        // Set confirmation page
+                        responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "confirmation.html"));
                     } catch (Exception e) {
                         // fugg it
                         Console.WriteLine("Y U No integer?: " + e);
-                    }
 
-                    if (wskey != "") Properties.Settings.Default.WSKey = wskey;
-                    if (email != "") Properties.Settings.Default.MailFrom = email;
-                    if (password != "") Properties.Settings.Default.MailPassword = password;
-
-                    // Save changes
-                    Properties.Settings.Default.Save();
-
-                    // Set confirmation page
-                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "confirmation.html"));
+                        // Set fail page
+                        responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
+                    }  
                 } else {
                     // Set management html page
                     responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "management.html"));
@@ -77,6 +81,7 @@ namespace BigData.Management_Interface {
                 Console.WriteLine("Response handled");
             }
         }
+
 
         /// <summary>
         /// Creates a local server and begins listening for requests.
