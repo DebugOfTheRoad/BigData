@@ -69,8 +69,18 @@ namespace BigData.Management_Interface {
                         responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
                     }  
                 } else {
-                    // Set management html page
-                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "management.html"));
+                    // Read management html from file
+                    string htmlString = File.ReadAllText(Path.Combine(htmlPath, "management.html"));
+                    Dictionary<string, string> values = new Dictionary<string,string>();
+                    values["emailsSent"] = "0";
+                    values["rssFeed"] = Properties.Settings.Default.RSSUri;
+                    values["count"] = Properties.Settings.Default.Count.ToString();
+                    values["wsKey"] = Properties.Settings.Default.WSKey;
+                    values["email"] = Properties.Settings.Default.MailFrom;
+                    string htmlValues = Nustache.Core.Render.StringToString(htmlString, values);
+
+                    // Covert string to byte array
+                    responsePage = System.Text.Encoding.UTF8.GetBytes(htmlValues);
                 }   
                 
                 // Send the page

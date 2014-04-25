@@ -45,19 +45,19 @@
                 <form role="form-horizontal" method="post">
                   <div class="form-group">
                     <label for="rss">OCLC List URL</label>
-                    <input type="text" class="form-control" id="rss" placeholder="Enter URL" name="rss">
+                    <input type="text" class="form-control" id="rss" placeholder="{{rssFeed}}" name="rss">
                   </div>
                   <div class="form-group">
                     <label for="rss">List Count</label>
-                    <input type="text" class="form-control" id="count" placeholder="Count" name="count">
+                    <input type="text" class="form-control" id="count" placeholder="{{count}}" name="count">
                   </div>
                   <div class="form-group">
                     <label for="WSKey">wskey</label>
-                    <input type="text" class="form-control" id="wskey" placeholder="wskey" name="wskey">
+                    <input type="text" class="form-control" id="wskey" placeholder="{{wsKey}}" name="wskey">
                   </div>
                   <div class="form-group">
                     <label for="rss">Email</label>
-                    <input type="email" class="form-control" id="email" placeholder="Email" name="email">
+                    <input type="email" class="form-control" id="email" placeholder="{{email}}" name="email">
                   </div>
                   <div class="form-group">
                     <label for="wskey">Email Password</label>
@@ -66,7 +66,7 @@
                   <button type="submit" class="btn btn-default">Submit</button>
                 </form>
                 <br>
-                Emails sent by the Library Digital Publication Display:
+                Emails sent by the Library Digital Publication Display: {{emailsSent}}
             </div>
         </div>
     </div>
