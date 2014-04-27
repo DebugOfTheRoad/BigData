@@ -45,7 +45,10 @@ namespace BigData.UI {
 
         private Publication publication;
         private bool showingTextBox;
+        private Grid controlGrid;
         private TextBox box;
+        private TextBlock borrowLabel;
+        private StackPanel panel;
 
         void InitializeComponent() {
             showingTextBox = false;
@@ -68,7 +71,7 @@ namespace BigData.UI {
             Grid.SetColumn(image, 0);
             Children.Add(image);
 
-            var panel = new StackPanel {
+            panel = new StackPanel {
                 Orientation = Orientation.Vertical,
             };
             Grid.SetColumn(panel, 1);
@@ -107,40 +110,76 @@ namespace BigData.UI {
             }
             panel.Children.Add(description);
 
-            var label = new TextBlock {
+            borrowLabel = new TextBlock {
                 Text = "Borrow Now ›",
                 Foreground = Brushes.White,
                 FontSize = 40,
                 FontFamily = new FontFamily("Segoe UI Light"),
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(50, 50, 50, 0),
+                Margin = new Thickness(50, 20, 50, 0),
             };
-            
-            panel.Children.Add(label);
+
+            panel.Children.Add(borrowLabel);
+
+            controlGrid = new Grid {
+                Margin = new Thickness(50, 20, 50, 0),
+                //RenderTransform = new TranslateTransform(0, 1000),
+                Width = 600,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                Opacity = 0,
+            };
+            controlGrid.RowDefinitions.Add(new RowDefinition());
+            controlGrid.ColumnDefinitions.Add(new ColumnDefinition {
+                Width = new GridLength(400)
+            });
+            controlGrid.ColumnDefinitions.Add(new ColumnDefinition {
+                Width = new GridLength(200)
+            });
+            panel.Children.Add(controlGrid);
+
 
             box = new TextBox {
-                Margin = new Thickness(50, 0, 50, 0),
                 FontSize = 36,
                 Text = "Username",
-                RenderTransform = new TranslateTransform(0, 500),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Width = 400,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Left
             };
             box.KeyUp += (sender, args) => {
                 if (args.Key != Key.Enter) { return; }
-                Emailer.Emailer.emailSend(box.Text, publication);
-                AnimateOut();
-                RaiseEvent(new RoutedEventArgs(InfoGrid.EmailSentEvent));
+                SendEMail();
             };
-            panel.Children.Add(box);
+            Grid.SetRow(box, 0);
+            Grid.SetColumn(box, 0);
+            controlGrid.Children.Add(box);
 
-            label.StylusSystemGesture += (_, e) => {
+            var sendLabel = new TextBlock {
+                Text = "Send ›",
+                Foreground = Brushes.White,
+                FontSize = 36,
+                FontFamily = new FontFamily("Segoe UI Light"),
+                Margin = new Thickness(20, 0, 0, 0)
+            };
+            Grid.SetRow(sendLabel, 0);
+            Grid.SetColumn(sendLabel, 1);
+            controlGrid.Children.Add(sendLabel);
+            sendLabel.StylusSystemGesture += (_, e) => {
+                if (e.SystemGesture == SystemGesture.Tap) {
+                    SendEMail();
+                    e.Handled = true;
+                }
+            };
+            sendLabel.MouseUp += (_, e) => {
+                e.Handled = true;
+                SendEMail();
+            };
+
+            borrowLabel.StylusSystemGesture += (_, e) => {
                 if (e.SystemGesture == SystemGesture.Tap) {
                     ShowTextBox();
                     e.Handled = true;
                 }
             };
-            label.MouseUp += (_, e) => {
+            borrowLabel.MouseUp += (_, e) => {
                 e.Handled = true;
                 ShowTextBox();
             };
@@ -159,23 +198,46 @@ namespace BigData.UI {
             Loaded += AnimateIn;
         }
 
+        void SendEMail() {
+            Emailer.Emailer.emailSend(box.Text, publication);
+            AnimateOut();
+            RaiseEvent(new RoutedEventArgs(InfoGrid.EmailSentEvent));
+        }
 
         void ShowTextBox() {
-            if (!showingTextBox) {
-                var animation = new DoubleAnimation {
-                    From = 500,
-                    To = 0,
-                    Duration = new Duration(TimeSpan.FromSeconds(0.5)),
-                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            if (showingTextBox) { return; }
+            showingTextBox = true;
+
+            var outAnimation = new DoubleAnimation {
+                From = 1,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromSeconds(0.1)),
+                //EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            };
+
+            outAnimation.Completed += delegate {
+                Console.WriteLine("Outanimation done");
+                panel.Children.Remove(borrowLabel);
+
+                var inAnimation = new DoubleAnimation {
+                    From = 0,
+                    To = 1,
+                    Duration = new Duration(TimeSpan.FromSeconds(0.1)),
                 };
-                box.RenderTransform.ApplyAnimationClock(TranslateTransform.YProperty, animation.CreateClock());
-                showingTextBox = true;
-            }
 
-            box.SelectAll();
-            box.Focus();
+                inAnimation.Completed += delegate {
+                    box.SelectAll();
+                    box.Focus();
 
-            keyboardProcess = Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
+                    keyboardProcess = Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
+                };
+
+                controlGrid.ApplyAnimationClock(Grid.OpacityProperty, inAnimation.CreateClock());
+            };
+
+            borrowLabel.ApplyAnimationClock(TextBlock.OpacityProperty, outAnimation.CreateClock());
+
+            
         }
 
         void AnimateIn(object sender, RoutedEventArgs e) {
