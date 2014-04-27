@@ -102,6 +102,9 @@ namespace BigData.UI {
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(50, 0, 200, 0),
             };
+            if (description.Text.Length > 200) {
+                description.Text = new String(description.Text.Take(200).ToArray()) + "...";
+            }
             panel.Children.Add(description);
 
             var label = new TextBlock {
