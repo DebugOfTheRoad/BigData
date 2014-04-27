@@ -30,7 +30,14 @@ namespace BigData.Management_Interface {
         /// </summary>
         static void ResponseThread() {
             while (true) {
-                var context = listener.GetContext();
+                HttpListenerContext context;
+
+                try {
+                    context = listener.GetContext();
+                } catch (Exception) {
+                    return;
+                }
+
                 byte[] responsePage;
                 Console.WriteLine("Request made... {0}", context.Request.HttpMethod);
 
@@ -103,6 +110,12 @@ namespace BigData.Management_Interface {
             Thread responseThread = new Thread(ResponseThread);
             responseThread.Start();
             Console.WriteLine("Server setup complete");
+        }
+
+        public void StopServer() {
+            if (listener.IsListening) {
+                listener.Stop();
+            }
         }
     }
 }

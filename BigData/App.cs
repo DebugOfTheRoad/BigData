@@ -19,6 +19,8 @@ namespace BigData {
             } catch (Exception ex) {
                 MessageBox.Show(ex.Message);
             }
+
+            server.StopServer();
         }
     }
 }
