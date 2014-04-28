@@ -178,7 +178,7 @@ namespace BigData.OCLC {
                 encoder.Frames.Add(BitmapFrame.Create(img));
                 encoder.Save(ms);
                 return ms.ToArray();
-            } catch (NullReferenceException e) {
+            } catch (NullReferenceException) {
                 Console.WriteLine("No Image Found");
                 return new byte[0];
             }

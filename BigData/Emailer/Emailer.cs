@@ -27,7 +27,7 @@ namespace BigData.Emailer {
             try {
                 toAddress = new MailAddress(username + "@bucknell.edu", await getFullName(username));
             }
-            catch (Exception e) {
+            catch (Exception) {
                 Console.WriteLine("Invalid username. Email not sent.");
                 return;
             }
