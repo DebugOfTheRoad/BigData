@@ -9,18 +9,17 @@ namespace BigData {
     class App : Application {
         [STAThread]
         public static void Main(string[] args) {
-            var a = new App();
-            var server = new Management_Interface.ManagementServer();
-            server.CreateServer();
-            a.MainWindow = new UI.MainWindow();
-
             try {
+                var a = new App();
+                var server = new Management_Interface.ManagementServer();
+                server.CreateServer();
+                a.MainWindow = new UI.MainWindow();
                 a.Run();
+                server.StopServer();
             } catch (Exception ex) {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show(ex.StackTrace, ex.Message);
             }
 
-            server.StopServer();
         }
     }
 }

@@ -74,7 +74,7 @@ namespace BigData {
         /// <summary>
         /// A BitmapImage of the cover of the Publication
         /// </summary>
-        public BitmapImage CoverImage { get; set; }
+        public BitmapSource CoverImage { get; set; }
 
         /// <summary>
         /// The ISBNs associated with the Publication

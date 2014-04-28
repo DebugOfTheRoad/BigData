@@ -171,7 +171,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="img">The image to be converted.</param>
         /// <returns>The resulting byte array.</returns>
-        private static byte[] BitmapToByteArray(BitmapImage img) {
+        private static byte[] BitmapToByteArray(BitmapSource img) {
             try {
                 MemoryStream ms = new MemoryStream();
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
@@ -221,11 +221,12 @@ namespace BigData.OCLC {
 
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[])reader["cover"]);
-                pub.CoverImage = new BitmapImage();
-                pub.CoverImage.BeginInit();
-                pub.CoverImage.StreamSource = ms;
-                pub.CoverImage.EndInit();
-                pub.CoverImage.Freeze();
+                var image = new BitmapImage();
+                image.BeginInit();
+                image.StreamSource = ms;
+                image.EndInit();
+                image.Freeze();
+                pub.CoverImage = image;
 
                 // Get the authors
                 string query = "SELECT author FROM Authors WHERE id = " + count + ";";

@@ -16,6 +16,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Diagnostics;
 using System.Windows.Interop;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace BigData.UI {
     public class MainWindow : Window {
@@ -25,8 +27,6 @@ namespace BigData.UI {
 
         private Grid grid;
         private PublicationCanvas[] views;
-        private int activeViewIndex;
-        private Stopwatch tapTimer;
 
         const int MAX_TAP_TIME = 75; // ms
 
@@ -51,7 +51,7 @@ namespace BigData.UI {
             grid.RowDefinitions.Add(row2);
             grid.RowDefinitions.Add(row3);
 
-            tapTimer = new Stopwatch();
+            DisableEdgeGestures();
         }
 
         async void PopulateDisplay(object sender, RoutedEventArgs args) {
@@ -59,6 +59,7 @@ namespace BigData.UI {
             String RSSUri = Properties.Settings.Default.RSSUri + "rss?count=" + Properties.Settings.Default.Count;
             var src = new OCLC.Database(Properties.Settings.Default.WSKey, RSSUri);
             await src.createDatabase();
+            //await src.updateDatabase();
             //var src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
             var publications = (await src.GetPublications()).ToArray();
             FlashMessage("Loaded", Brushes.LightGreen);
@@ -75,46 +76,6 @@ namespace BigData.UI {
                 Grid.SetRow(views[i], i);
                 grid.Children.Add(views[i]);
             }
-            ///*
-            //MouseDown += (_, e) => {
-            //    activeViewIndex = (int)(e.GetPosition(this).Y * 3 / this.Height);
-            //    views[activeViewIndex].BeginTouchTracking(e.GetPosition(this).X);
-            //    tapTimer.Restart();
-            //};
-            // */ 
-            //TouchDown += (_, e) => {
-            //    activeViewIndex = (int)(e.GetTouchPoint(this).Position.Y * 3 / this.Height);
-            //    views[activeViewIndex].BeginTouchTracking(e.GetTouchPoint(this).Position.X);
-            //    tapTimer.Restart();
-            //};
-
-            ///*
-            //MouseUp += (_, e) => {
-            //    views[activeViewIndex].EndTouchTracking(e.GetPosition(this).X);
-            //    tapTimer.Stop();
-
-            //    if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
-            //        ShowPublicationAtPoint(e.GetPosition(this));
-            //    }
-            //};
-            // */
-            //TouchUp += (_, e) => {
-            //    views[activeViewIndex].EndTouchTracking(e.GetTouchPoint(this).Position.X);
-            //    tapTimer.Stop();
-
-            //    if (tapTimer.ElapsedMilliseconds < MAX_TAP_TIME) {
-            //        ShowPublicationAtPoint(e.GetTouchPoint(this).Position);
-            //    }
-            //};
-
-            ///*
-            //MouseMove += (_, e) => {
-            //    views[activeViewIndex].TrackTouch(e.GetPosition(this).X);
-            //};
-            // */ 
-            //TouchMove += (_, e) => {
-            //    views[activeViewIndex].TrackTouch(e.GetTouchPoint(this).Position.X);
-            //};
 
             StylusSystemGesture += (s, e) => {
                 if (e.SystemGesture == SystemGesture.Tap) {
@@ -125,34 +86,8 @@ namespace BigData.UI {
             MouseUp += (s, e) => {
                 ShowPublicationAtPoint(e.GetPosition(this));
             };
-        }
 
-        /*
-        void FlashMessage(string text, Brush background) {
-            var label = new Label {
-                Content = text,
-                Background = background,
-                FontFamily = new FontFamily("Segoe UI Light"),
-                FontSize = 30,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Top,
-                VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
-                Height = 60,
-            };
-            Grid.SetRow(label, 0);
-            Grid.SetColumn(label, 0);
-            Grid.SetZIndex(label, 10); 
-            grid.Children.Add(label);
-
-            var animation = new DoubleAnimation {
-                From = 1,
-                To = 0,
-                Duration = new Duration(TimeSpan.FromSeconds(5)),
-            };
-            label.ApplyAnimationClock(Label.OpacityProperty, animation.CreateClock());
-            animation.Completed += delegate { grid.Children.Remove(label); };
         }
-         */
 
         void FlashMessage(string text, Brush background) {
             var label = new Label {
@@ -221,5 +156,18 @@ namespace BigData.UI {
                 grid.Children.Remove(view);
             };
         }
+
+        void DisableEdgeGestures() {
+            var ih = new WindowInteropHelper(this);
+            var hwnd = ih.EnsureHandle();
+
+            var success = SetTouchDisableProperty(hwnd, true);
+            if (!success) {
+                MessageBox.Show("Failed to set touch disable property");
+            }
+        }
+
+        [DllImport("NativeWrappers.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool SetTouchDisableProperty(IntPtr hwnd, bool fDisableTouch);
     }
 }
