@@ -20,5 +20,11 @@
     <Setting Name="Count" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">2000</Value>
     </Setting>
+    <Setting Name="Token" Type="System.String" Scope="User">
+      <Value Profile="(Default)">259</Value>
+    </Setting>
+    <Setting Name="Secret" Type="System.String" Scope="User">
+      <Value Profile="(Default)">readingisgood</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

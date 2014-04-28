@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Xml.XPath;
 using System.Xml.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Windows.Media.Imaging;
 using System.IO;
 using HtmlAgilityPack;
@@ -14,6 +15,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Controls;
+using System.Security.Cryptography;
 
 namespace BigData.OCLC {
     /// <summary>
@@ -66,48 +68,80 @@ namespace BigData.OCLC {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
             var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
 
-            var request = WebRequest.Create(queryURI);
-            var response = await request.GetResponseAsync();
+            var request = WebRequest.CreateHttp(queryURI);
+            using (var response = await request.GetResponseAsync()) {
+                var doc = XDocument.Load(response.GetResponseStream());
+                var pub = Publication.FromXML(doc);
+                pub.OCLCNumber = oclcNumber;
 
-            var doc = XDocument.Load(response.GetResponseStream());
-            var pub = Publication.FromXML(doc);
-            pub.OCLCNumber = oclcNumber;
+                try {
+                    var imageUriTasks = from num in await FetchAllOCLCNumbers(oclcNumber)
+                                        select GetOCLCCoverImageUriAsync(oclcNumber);
 
-            try {
-                var imageUriTasks = from num in await FetchAllOCLCNumbers(oclcNumber)
-                                    select GetOCLCCoverImageUriAsync(oclcNumber);
+                    var uris = (await Task.WhenAll(imageUriTasks))
+                        .SelectMany(i => i)
+                        .Concat(await GetOCLCCoverImageUriAsync(oclcNumber))
+                        .Distinct();
+                    var imageTasks = from uri in uris
+                                     select GetBitmapImage(uri);
 
-                var uris = (await Task.WhenAll(imageUriTasks))
-                    .SelectMany(i => i)
-                    .Concat(await GetOCLCCoverImageUriAsync(oclcNumber));
-                var imageTasks = from uri in uris
-                                 select GetBitmapImage(uri);
+                    var goodImages = from source in await Task.WhenAll(imageTasks)
+                                     where source != null
+                                     select source;
 
-                var goodImages = from source in await Task.WhenAll(imageTasks)
-                                 where source != null
-                                 select source;
+                    pub.CoverImage = goodImages.First();
+                } catch (Exception ex) {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                    pub.CoverImage = DrawPublicationImage(pub.Title, String.Join(", ", pub.Authors));
+                }
 
-                pub.CoverImage = goodImages.First();
-            } catch (Exception ex) {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
-                pub.CoverImage = DrawPublicationImage(pub.Title, String.Join(", ", pub.Authors));
+                return pub;
             }
-
-            return pub;
         }
 
         public static async Task<IEnumerable<string>> FetchAllOCLCNumbers(string oclcNumber) {
-            var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/oclcnum/");
-            var queryUri = new Uri(baseUri, oclcNumber + "?method=getEditions&format=xml&fl=oclcnum");
+            var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/oclcnum/" + oclcNumber);
+
+            var token = Properties.Settings.Default.Token;
+            var ip = GetIPAddress();
+            var secret = Properties.Settings.Default.Secret;
+            string hexDigest;
+
+            using (var hash = MD5.Create()) {
+                byte[] bytes = Encoding.UTF8.GetBytes(
+                    baseUri.ToString() + "|" +
+                    ip + "|" +
+                    secret
+                );
+                byte[] digest = hash.ComputeHash(bytes);
+                hexDigest = digest
+                    .Select(b => String.Format("{0:x2}", b))
+                    .Aggregate("", (acc, s) => acc + s);
+            }
+
+            var queryUri = new Uri(baseUri,
+                String.Format("?method=getEditions&format=xml&fl=oclcnum&token={0}&hash={1}", token, hexDigest));
+            Console.WriteLine(queryUri);
 
             var request = WebRequest.CreateHttp(queryUri);
-            var response = await request.GetResponseAsync();
+            using (var response = await request.GetResponseAsync()) {
+                var doc = XDocument.Load(response.GetResponseStream());
+                XNamespace ns = @"http://worldcat.org/xid/oclcnum/";
+                return from tag in doc.Descendants(ns + "oclcnum")
+                       select tag.Value;
+            }
+        }
 
-            var doc = XDocument.Load(response.GetResponseStream());
-            XNamespace ns = @"http://worldcat.org/xid/oclcnum/";
-            return from tag in doc.Descendants(ns + "oclcnum")
-                   select tag.Value;
+        private static string GetIPAddress() {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList) {
+                if (ip.AddressFamily == AddressFamily.InterNetwork) {
+                    return ip.ToString();
+                }
+            }
+
+            throw new Exception("This system has no public INET addresses!");
         }
 
         /// <summary>
@@ -119,18 +153,20 @@ namespace BigData.OCLC {
             var baseUri = new Uri(@"https://bucknell.worldcat.org/oclc/");
             var oclcUri = new Uri(baseUri, oclcNumber);
             var request = WebRequest.CreateHttp(oclcUri);
-            var response = await request.GetResponseAsync();
 
-            var doc = new HtmlDocument();
-            doc.Load(response.GetResponseStream());
-            var img = doc.DocumentNode.SelectSingleNode(@"//*[@id='cover']/img");
+            using (var response = await request.GetResponseAsync()) {
+                var doc = new HtmlDocument();
+                doc.Load(response.GetResponseStream());
+                var img = doc.DocumentNode.SelectSingleNode(@"//*[@id='cover']/img");
 
-            var src = img.Attributes["src"].Value;
-            return new Uri[] {
-                new Uri(baseUri.Scheme + ":" + src),
-                new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_400.jpg")),
-                new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_70.jpg")),
-            };
+                var src = img.Attributes["src"].Value;
+                Console.WriteLine(src);
+                return new Uri[] {
+                    new Uri(baseUri.Scheme + ":" + src),
+                    new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_400.jpg")),
+                    new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_70.jpg")),
+                };
+            }
         }
 
         /// <summary>
@@ -140,9 +176,9 @@ namespace BigData.OCLC {
         /// <returns>Bitmap image of the cover</returns>
         private static async Task<BitmapSource> GetBitmapImage(Uri imageUri) {
             var request = WebRequest.CreateHttp(imageUri);
-            var response = await request.GetResponseAsync();
 
             var ms = new MemoryStream();
+            var response = await request.GetResponseAsync();
             await response.GetResponseStream().CopyToAsync(ms);
             ms.Seek(0, SeekOrigin.Begin);
 
