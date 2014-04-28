@@ -21,7 +21,7 @@ namespace BigData.Management_Interface {
 
         // Might want to change.
         // If so, also change in confirmation.html
-        private static String pageURL = "http://localhost:5000/";
+        private static String pageURL = "http://+:80/";
 
 
         /// <summary>
