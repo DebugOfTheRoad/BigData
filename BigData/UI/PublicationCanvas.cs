@@ -39,7 +39,7 @@ namespace BigData.UI {
                 }
             }
 
-            throw new Exception("No publication at given point");
+            return null;
         }
 
         private bool isBeingManipulated;

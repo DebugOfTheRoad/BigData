@@ -80,7 +80,7 @@ namespace BigData.OCLC {
 
                 await updateDatabase();
             } else {
-                Callback();
+                Application.Current.Dispatcher.Invoke(Callback);
             }
         }
 
@@ -101,44 +101,49 @@ namespace BigData.OCLC {
             this.count = 0;
 
             string InsertQuery;
-            foreach (var pub in pubList) {
-                // Insert publication
-                InsertQuery = "INSERT INTO Publications VALUES (" +
-                               "(@id), " +
-                               "(@isbn), " +
-                               "(@title), " +
-                               "(@oclc), " +
-                               "(@desc), " +
-                               "(@cover)" +
-                               ");";
+            try {
+                foreach (var pub in pubList) {
+                    // Insert publication
+                    InsertQuery = "INSERT INTO Publications VALUES (" +
+                                   "(@id), " +
+                                   "(@isbn), " +
+                                   "(@title), " +
+                                   "(@oclc), " +
+                                   "(@desc), " +
+                                   "(@cover)" +
+                                   ");";
 
-                // Adding parameters
-                SQLiteCommand = new SQLiteCommand(InsertQuery, SQLiteConnection);
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@oclc", pub.OCLCNumber));
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@desc", pub.Description));
-
-                // Adding cover to query
-                byte[] cover = BitmapToByteArray(pub.CoverImage);
-                SQLiteCommand.Parameters.Add(new SQLiteParameter("@cover", cover));
-                SQLiteCommand.ExecuteNonQuery();
-
-                // Insert authors
-                for (int j = 0; j < pub.Authors.Count; j++) {
-                    string authorQuery = "INSERT INTO Authors VALUES (" +
-                                         "(@id), " +
-                                         "(@author));";
-
-                    // Author parameter
-                    SQLiteCommand = new SQLiteCommand(authorQuery, SQLiteConnection);
+                    // Adding parameters
+                    SQLiteCommand = new SQLiteCommand(InsertQuery, SQLiteConnection);
                     SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@author", pub.Authors[j]));
-                    SQLiteCommand.ExecuteNonQuery();
-                }
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@oclc", pub.OCLCNumber));
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@desc", pub.Description));
 
-                this.count++;
+                    // Adding cover to query
+                    byte[] cover = BitmapToByteArray(pub.CoverImage);
+                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@cover", cover));
+                    SQLiteCommand.ExecuteNonQuery();
+
+                    // Insert authors
+                    for (int j = 0; j < pub.Authors.Count; j++) {
+                        string authorQuery = "INSERT INTO Authors VALUES (" +
+                                             "(@id), " +
+                                             "(@author));";
+
+                        // Author parameter
+                        SQLiteCommand = new SQLiteCommand(authorQuery, SQLiteConnection);
+                        SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
+                        SQLiteCommand.Parameters.Add(new SQLiteParameter("@author", pub.Authors[j]));
+                        SQLiteCommand.ExecuteNonQuery();
+                    }
+
+                    this.count++;
+                }
+            } catch (Exception ex) {
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.StackTrace);
             }
 
             Console.WriteLine("Database updated");

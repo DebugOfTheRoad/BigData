@@ -150,6 +150,8 @@ namespace BigData.UI {
             int index = (int)(point.Y * 3 / this.Height);
             var pub = views[index].GetPublicationAtPoint(point.X);
 
+            if (pub == null) return;
+
             var view = new InfoGrid(pub);
             Grid.SetRow(view, 0);
             Grid.SetRowSpan(view, 3);

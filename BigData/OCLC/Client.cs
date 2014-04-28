@@ -76,26 +76,44 @@ namespace BigData.OCLC {
 
                 try {
                     var imageUriTasks = from num in await FetchAllOCLCNumbers(oclcNumber)
-                                        select GetOCLCCoverImageUriAsync(oclcNumber);
+                                        select GetOCLCCoverImageUriAsync(num);
 
-                    var uris = (await Task.WhenAll(imageUriTasks))
-                        .SelectMany(i => i)
-                        .Concat(await GetOCLCCoverImageUriAsync(oclcNumber))
-                        .Distinct();
-                    var imageTasks = from uri in uris
-                                     select GetBitmapImage(uri);
+                    foreach (var task in imageUriTasks) {
+                        var uris = await task;
+                        foreach (var uri in uris) {
+                            try {
+                                var image = await GetBitmapImage(uri);
 
-                    var goodImages = from source in await Task.WhenAll(imageTasks)
-                                     where source != null
-                                     select source;
+                                if (image != null) {
+                                    pub.CoverImage = image;
+                                    return pub;
+                                }
+                            } catch (WebException ex) {
+                                Console.WriteLine(ex.Message);
+                                Console.WriteLine(ex.StackTrace);
+                            }
+                        }
+                    }
 
-                    pub.CoverImage = goodImages.First();
+                    foreach (var uri in await GetOCLCCoverImageUriAsync(oclcNumber)) {
+                        try {
+                            var image = await GetBitmapImage(uri);
+
+                            if (image != null) {
+                                pub.CoverImage = image;
+                                return pub;
+                            }
+                        } catch (WebException ex) {
+                            Console.WriteLine(ex.Message);
+                            Console.WriteLine(ex.StackTrace);
+                        }
+                    }
                 } catch (Exception ex) {
                     Console.WriteLine(ex.Message);
                     Console.WriteLine(ex.StackTrace);
-                    pub.CoverImage = DrawPublicationImage(pub.Title, String.Join(", ", pub.Authors));
                 }
 
+                pub.CoverImage = DrawPublicationImage(pub.Title, String.Join(", ", pub.Authors));
                 return pub;
             }
         }
@@ -162,9 +180,9 @@ namespace BigData.OCLC {
                 var src = img.Attributes["src"].Value;
                 Console.WriteLine(src);
                 return new Uri[] {
-                    new Uri(baseUri.Scheme + ":" + src),
                     new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_400.jpg")),
-                    new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_70.jpg")),
+                    new Uri(baseUri.Scheme + ":" + src),
+                    new Uri(baseUri.Scheme + ":" + src.Replace("_140.jpg", "_70.jpg"))
                 };
             }
         }
@@ -187,6 +205,7 @@ namespace BigData.OCLC {
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.StreamSource = ms;
             image.EndInit();
+            image.Freeze();
 
             int stride = (image.Format.BitsPerPixel / 8) * image.PixelWidth;
             var pixels = new byte[stride * image.PixelHeight];
