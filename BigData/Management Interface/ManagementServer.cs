@@ -14,9 +14,10 @@ namespace BigData.Management_Interface {
 
         // Finds the path to the html files in the project space
         // There is probably a better place to put them
-        private static String htmlPath = Path.Combine(Environment.CurrentDirectory,
-            @"..\..\Management Interface\");
-        
+        private static String htmlPath = Path.Combine(
+            Environment.CurrentDirectory,
+            @"Management Interface"
+         );
 
         // Might want to change.
         // If so, also change in confirmation.html
