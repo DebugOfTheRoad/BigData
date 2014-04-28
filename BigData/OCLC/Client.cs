@@ -26,9 +26,9 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="key">The WSKey to use to access OCLC APIs</param>
         /// <param name="feedUri">The RSS feed from which to fetch books</param>
-        public Client(string key, string feedUri) {
-            WSKey = key;
-            FeedUri = feedUri;
+        public Client() {
+            WSKey = Properties.Settings.Default.WSKey;
+            FeedUri = Properties.Settings.Default.RSSUri + "/rss?count=" + Properties.Settings.Default.Count;
         }
 
         /// <summary>
@@ -42,7 +42,9 @@ namespace BigData.OCLC {
                         let oclcNum = uri.Segments.Last()
                         select FetchPublicationFromOCLCNumber(oclcNum);
 
-            return await Task.WhenAll(tasks);
+            var pubs = await Task.WhenAll(tasks);
+            Console.WriteLine("Done loading publications from OCLC");
+            return pubs;
         }
 
         /// <summary>
@@ -75,7 +77,9 @@ namespace BigData.OCLC {
                 var imageUriTasks = from num in await FetchAllOCLCNumbers(oclcNumber)
                                     select GetOCLCCoverImageUriAsync(oclcNumber);
 
-                var uris = (await Task.WhenAll(imageUriTasks)).SelectMany(i => i);
+                var uris = (await Task.WhenAll(imageUriTasks))
+                    .SelectMany(i => i)
+                    .Concat(await GetOCLCCoverImageUriAsync(oclcNumber));
                 var imageTasks = from uri in uris
                                  select GetBitmapImage(uri);
 
@@ -160,7 +164,7 @@ namespace BigData.OCLC {
             }
         }
 
-        public static BitmapSource DrawPublicationImage(string title, string author) {
+        private BitmapSource DrawPublicationImage(string title, string author) {
             var size = new Size(800, 1200);
 
             var titleText = new FormattedText(title,
@@ -183,19 +187,15 @@ namespace BigData.OCLC {
 
             var visual = new DrawingVisual();
 
-            try {
-                var ctx = visual.RenderOpen();
-                ctx.DrawRectangle(Brushes.White, null, new Rect(size));
-                ctx.DrawText(titleText, new Point(0, 100));
-                ctx.DrawText(authorText, new Point(0, 100 + titleText.Height + 20));
-                ctx.Close();
-            } catch (Exception ex) {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
-            }
+            var ctx = visual.RenderOpen();
+            ctx.DrawRectangle(Brushes.White, null, new Rect(size));
+            ctx.DrawText(titleText, new Point(0, 100));
+            ctx.DrawText(authorText, new Point(0, 100 + titleText.Height + 20));
+            ctx.Close();
 
             var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 92, 92, PixelFormats.Pbgra32);
             bitmap.Render(visual);
+            bitmap.Freeze();
             return bitmap;
         }
     }

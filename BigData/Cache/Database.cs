@@ -8,7 +8,7 @@ using System.Data.SQLite;
 using System.Drawing;
 using System.Windows.Media.Imaging;
 using System.IO;
-
+using System.Windows;
 
 namespace BigData.OCLC {
     /// <summary>
@@ -17,29 +17,26 @@ namespace BigData.OCLC {
     public class Database : PublicationSource {
         private SQLiteConnection SQLiteConnection;
         private SQLiteCommand SQLiteCommand;
-        private string rssFeed;
-        private string wsKey;
         private uint count;
         private bool exists;
+
+        public Action Callback { get; set; }
 
         /// <summary>
         /// Create a database instance.
         /// </summary>
         /// <param name="key">The WSKey required to access the database.</param>
         /// <param name="feed">The rss feed that will be passed to the OCLC client.</param>
-        public Database(string key, string feed) {
+        public Database() {
             var path = GetDatabasePath();
             // Do nothing if database file exists
             if (File.Exists(path))
                 exists = true;
             else
                 exists = false;
-
             var source = String.Format("Data Source = {0}; Version = 3; New = false; Compress = true", path);
             SQLiteConnection = new SQLiteConnection(source);
             SQLiteConnection.Open();
-            rssFeed = feed;
-            wsKey = key;
         }
 
         /// <summary>
@@ -62,29 +59,29 @@ namespace BigData.OCLC {
         /// Creates the Publication and Author tables.
         /// </summary>
         public async Task createDatabase() {
-            string path = GetDatabasePath();
-
             // Check if DB has already been created
-            if (exists)
-                return;
+            if (!exists) {
 
-            // Otherwise do things
-            string PubTable = "CREATE TABLE Publications(" +
-                              "id INT, " +
-                              "isbn TEXT, " +
-                              "title TEXT, " +
-                              "oclc TEXT, " +
-                              "desc TEXT, " +
-                              "cover BLOB" +
-                              ")";
-            string AuthorTable = "CREATE TABLE Authors(" +
-                                 "id INT, " +
-                                 "author TEXT" +
-                                 ")";
-            this.ExecuteSQLiteCommand(PubTable);
-            this.ExecuteSQLiteCommand(AuthorTable);
+                // Otherwise do things
+                string PubTable = "CREATE TABLE Publications(" +
+                                  "id INT, " +
+                                  "isbn TEXT, " +
+                                  "title TEXT, " +
+                                  "oclc TEXT, " +
+                                  "desc TEXT, " +
+                                  "cover BLOB" +
+                                  ")";
+                string AuthorTable = "CREATE TABLE Authors(" +
+                                     "id INT, " +
+                                     "author TEXT" +
+                                     ")";
+                this.ExecuteSQLiteCommand(PubTable);
+                this.ExecuteSQLiteCommand(AuthorTable);
 
-            await updateDatabase();
+                await updateDatabase();
+            } else {
+                Callback();
+            }
         }
 
         /// <summary>
@@ -99,7 +96,7 @@ namespace BigData.OCLC {
             this.ExecuteSQLiteCommand(deleteQuery);
 
             // Now insert new entries
-            Client oclc = new Client(this.wsKey, this.rssFeed);
+            Client oclc = new Client();
             var pubList = await oclc.GetPublications();
             this.count = 0;
 
@@ -144,6 +141,8 @@ namespace BigData.OCLC {
                 this.count++;
             }
 
+            Console.WriteLine("Database updated");
+            Application.Current.Dispatcher.Invoke(Callback);
             return this.count;
         }
 
@@ -152,8 +151,10 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="cmd">The SQLite command as a string.</param>
         private void ExecuteSQLiteCommand(string cmd) {
-            SQLiteCommand = new SQLiteCommand(cmd, SQLiteConnection);
-            SQLiteCommand.ExecuteNonQuery();
+            lock (SQLiteConnection) {
+                SQLiteCommand = new SQLiteCommand(cmd, SQLiteConnection);
+                SQLiteCommand.ExecuteNonQuery();
+            }
         }
 
         /// <summary>
@@ -162,8 +163,10 @@ namespace BigData.OCLC {
         /// <param name="query">The Sqlite query as a string</param>
         /// <returns>A SQLiteDataReader with the results from the query.</returns>
         private SQLiteDataReader ExecuteSQLiteQuery(string query) {
-            SQLiteCommand = new SQLiteCommand(query, SQLiteConnection);
-            return SQLiteCommand.ExecuteReader();
+            lock (SQLiteConnection) {
+                SQLiteCommand = new SQLiteCommand(query, SQLiteConnection);
+                return SQLiteCommand.ExecuteReader();
+            }
         }
 
         /// <summary>
@@ -260,7 +263,7 @@ namespace BigData.OCLC {
         /// <param name="query">The search term</param>
         /// <param name="field">The field that should be searched, an enum</param>
         /// <returns>An array of the publications that matched</returns>
-        public async Task<IEnumerable<Publication>> GetPublicationByField(string query, Publication.SearchField field) {
+        public IEnumerable<Publication> GetPublicationByField(string query, Publication.SearchField field) {
             string sqlQuery = "SELECT * FROM Publications WHERE " + field;
             switch (field) {
                 case Publication.SearchField.ISBN:

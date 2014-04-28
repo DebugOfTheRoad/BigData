@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace BigData {
     class App : Application {
@@ -19,7 +20,20 @@ namespace BigData {
             } catch (Exception ex) {
                 MessageBox.Show(ex.StackTrace, ex.Message);
             }
-
         }
+
+        public App() {
+            var timer = new DispatcherTimer {
+                Interval = TimeSpan.FromHours(24)
+            };
+            timer.Tick += delegate {
+                if (Source != null && Source.Callback != null) {
+                    Source.Callback();
+                }
+            };
+            timer.Start();
+        }
+
+        public OCLC.Database Source { get; set; }
     }
 }

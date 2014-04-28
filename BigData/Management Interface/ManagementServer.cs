@@ -42,19 +42,21 @@ namespace BigData.Management_Interface {
                 byte[] responsePage;
                 Console.WriteLine("Request made... {0}", context.Request.HttpMethod);
 
+                Console.WriteLine(context.Request.Url.AbsolutePath);
+
                 // Check if it is a post or a get request
-                if (context.Request.HttpMethod == "POST") {
+                if (context.Request.HttpMethod == "POST" && context.Request.Url.AbsolutePath == "/") {
                     // Read body of post request
                     var reader = new StreamReader(context.Request.InputStream);
                     String formData = reader.ReadToEnd();
 
                     // Parsed using splits muhahahaha
                     var parsedForm = formData.Split('&');
-                    String rss = parsedForm[0].Split('=')[1];
+                    String rss = System.Net.WebUtility.UrlDecode(parsedForm[0].Split('=')[1]);
                     String count = parsedForm[1].Split('=')[1];
-                    String wskey = parsedForm[2].Split('=')[1];
-                    String email = parsedForm[3].Split('=')[1];
-                    String password = parsedForm[4].Split('=')[1];
+                    String wskey = WebUtility.UrlDecode(parsedForm[2].Split('=')[1]);
+                    String email = WebUtility.UrlDecode(parsedForm[3].Split('=')[1]);
+                    String password = WebUtility.UrlDecode(parsedForm[4].Split('=')[1]);
 
                     // Make changes to settings if entry is non-blank
                     try {
@@ -76,7 +78,7 @@ namespace BigData.Management_Interface {
                         // Set fail page
                         responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
                     }  
-                } else {
+                } else if (context.Request.HttpMethod == "GET" && context.Request.Url.AbsolutePath == "/") {
                     // Read management html from file
                     string htmlString = File.ReadAllText(Path.Combine(htmlPath, "management.html"));
                     Dictionary<string, string> values = new Dictionary<string,string>();
@@ -89,7 +91,18 @@ namespace BigData.Management_Interface {
 
                     // Covert string to byte array
                     responsePage = System.Text.Encoding.UTF8.GetBytes(htmlValues);
-                }   
+                } else if (context.Request.HttpMethod == "POST" && context.Request.Url.AbsolutePath == "/update") {
+                    Console.WriteLine("Refreshing database...");
+                    try {
+                        ((App)App.Current).Source.updateDatabase();
+                    } catch (Exception ex) {
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine(ex.StackTrace);
+                    }
+                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "confirmation.html"));
+                } else {
+                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
+                }
                 
                 // Send the page
                 context.Response.ContentType = "text/html";

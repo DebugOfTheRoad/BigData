@@ -40,6 +40,7 @@ namespace BigData.UI {
 
             grid = new Grid();
             Content = grid;
+            views = new PublicationCanvas[3];
 
             ColumnDefinition col = new ColumnDefinition();
             grid.ColumnDefinitions.Add(col);
@@ -54,19 +55,15 @@ namespace BigData.UI {
             DisableEdgeGestures();
         }
 
-        async void PopulateDisplay(object sender, RoutedEventArgs args) {
-            FlashMessage("Loading...", Brushes.LightYellow);
-            String RSSUri = Properties.Settings.Default.RSSUri + "rss?count=" + Properties.Settings.Default.Count;
-            var src = new OCLC.Database(Properties.Settings.Default.WSKey, RSSUri);
-            await src.createDatabase();
-            //await src.updateDatabase();
-            //var src = new OCLC.Client(Properties.Settings.Default.WSKey, Properties.Settings.Default.RSSUri);
+        async void UpdateDisplay() {
+            var src = ((App)Application.Current).Source;
             var publications = (await src.GetPublications()).ToArray();
-            FlashMessage("Loaded", Brushes.LightGreen);
 
             var imagesPerRow = publications.Length / 3;
 
-            views = new PublicationCanvas[3];
+            for (int i = 0; i < views.Length; i++) {
+                grid.Children.Remove(views[i]);
+            }
 
             views[0] = new PublicationCanvas(publications.Take(imagesPerRow).ToArray(), Height / 3);
             views[1] = new PublicationCanvas(publications.Skip(imagesPerRow).Take(imagesPerRow).ToArray(), Height / 3);
@@ -77,6 +74,17 @@ namespace BigData.UI {
                 grid.Children.Add(views[i]);
             }
 
+            FlashMessage("Loaded", Brushes.LightGreen);
+        }
+
+        async void PopulateDisplay(object sender, RoutedEventArgs args) {
+            FlashMessage("Loading...", Brushes.LightYellow);
+            var src = new OCLC.Database();
+            ((App)App.Current).Source = src;
+            src.Callback = UpdateDisplay;
+            await src.createDatabase();
+            
+
             StylusSystemGesture += (s, e) => {
                 if (e.SystemGesture == SystemGesture.Tap) {
                     ShowPublicationAtPoint(e.GetPosition(this));
@@ -86,7 +94,6 @@ namespace BigData.UI {
             MouseUp += (s, e) => {
                 ShowPublicationAtPoint(e.GetPosition(this));
             };
-
         }
 
         void FlashMessage(string text, Brush background) {
@@ -146,6 +153,7 @@ namespace BigData.UI {
             var view = new InfoGrid(pub);
             Grid.SetRow(view, 0);
             Grid.SetRowSpan(view, 3);
+            Grid.SetZIndex(view, 10);
             grid.Children.Add(view);
 
             view.EmailSent += delegate {
