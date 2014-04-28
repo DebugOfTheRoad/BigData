@@ -120,7 +120,7 @@ namespace BigData.Emailer {
             data["name"] = name;
             data["pubname"] = pub.Title;
             data["link"] = "https://bucknell.worldcat.org/oclc/" + pub.OCLCNumber;
-            data["link2"] = "https://researchbysubject.bucknell.edu/ebooks";
+            data["link2"] = "http://researchbysubject.bucknell.edu/ebooks";
             data["coverURI"] = cover.ContentId;
             return Nustache.Core.Render.StringToString(sTemplate, data);
         }
