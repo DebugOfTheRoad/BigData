@@ -40,6 +40,7 @@ namespace BigData.UI {
             SetupInputPanel();
 
             Loaded += AnimateIn;
+            StylusSystemGesture += BackgroundGesture;
         }
 
         /// <summary>
@@ -62,6 +63,7 @@ namespace BigData.UI {
         StackPanel inputPanel;
         TextBox usernameBox;
         TextBlock borrowLabel;
+        TextBlock description;
         StackPanel infoPanel;
 
         void SetupGrid() {
@@ -101,8 +103,12 @@ namespace BigData.UI {
                 Text = publication.Title,
                 Foreground = Brushes.White,
                 FontSize = 50,
+                LineHeight = 50,
+                LineStackingStrategy = System.Windows.LineStackingStrategy.BlockLineHeight,
                 FontFamily = new FontFamily("Segoe UI Light"),
                 TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 700,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Margin = new Thickness(50, 200, 50, 0),
             };
             infoPanel.Children.Add(title);
@@ -121,16 +127,17 @@ namespace BigData.UI {
         }
 
         void AddDescription() {
-            var description = new TextBlock {
+            description = new TextBlock {
                 Text = publication.Description,
                 Foreground = Brushes.White,
                 FontSize = 26,
                 FontFamily = new FontFamily("Segoe UI Light"),
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(50, 0, 200, 0),
+                Margin = new Thickness(50, 0, 0, 0),
                 TextTrimming = TextTrimming.WordEllipsis,
-                MaxHeight = 200,
-                MaxWidth = 400,
+                MaxHeight = 150,
+                MaxWidth = 700,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             };
             infoPanel.Children.Add(description);
         }
@@ -151,6 +158,7 @@ namespace BigData.UI {
         void SetupInputPanel() {
             inputPanel = new StackPanel {
                 Orientation = Orientation.Horizontal,
+                Margin = new Thickness(50, 20, 0, 0),
             };
 
             AddUsernameTextBox();
@@ -194,6 +202,12 @@ namespace BigData.UI {
             args.Handled = true;
         }
 
+        void BackgroundGesture(object sender, StylusSystemGestureEventArgs args) {
+            if (args.SystemGesture != SystemGesture.Tap) { return; }
+
+            AnimateOut();
+        }
+
         void UsernameKeyUp(object sender, KeyEventArgs args) {
             if (args.Key != Key.Enter && args.Key != Key.Return) { return; }
 
@@ -217,9 +231,11 @@ namespace BigData.UI {
 
             outAnimation.Completed += delegate {
                 infoPanel.Children.Remove(borrowLabel);
+                infoPanel.Children.Remove(description);
                 AddInputPanel();
             };
 
+            description.ApplyAnimationClock(TextBlock.OpacityProperty, outAnimation.CreateClock());
             borrowLabel.ApplyAnimationClock(TextBlock.OpacityProperty, outAnimation.CreateClock());
         }
 

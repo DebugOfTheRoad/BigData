@@ -13,61 +13,69 @@ using System.Windows.Threading;
 using System.Windows.Input;
 
 namespace BigData.UI {
-    public class PublicationCanvas : Canvas {
-        const double RESTING_VELOCITY = 0.05; // pixels per frame
-        const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
-        const double DECELERATION = (50.0 * 96) / (1000 * 1000);
 
+    /// <summary>
+    /// A Canvas object displaying a horizontally-scrollable collection of
+    /// Publication cover images
+    /// </summary>
+    public class PublicationCanvas : Canvas {
+
+        /// <summary>
+        /// Create and initialize a new PublicationCanvas
+        /// </summary>
+        /// <param name="pubs">The publications to display on the screen</param>
+        /// <param name="height">The height of the canvas</param>
         public PublicationCanvas(Publication[] pubs, double height) {
+
+            // map Image objects to Publications
             publications = pubs.ToDictionary(
                 p => new Image() { Source = p.CoverImage, Height = height },
                 p => p
             );
-            InitializeComponent();
-        }
 
-        public static readonly RoutedEvent PublicationSelectedEvent = EventManager.RegisterRoutedEvent(
-            "PublicationSelected",
-            RoutingStrategy.Bubble,
-            typeof(PublicationSelectedHandler),
-            typeof(PublicationCanvas));
-
-        public event PublicationSelectedHandler PublicationSelected {
-            add { AddHandler(PublicationSelectedEvent, value); }
-            remove { RemoveHandler(PublicationSelectedEvent, value); }
-        }
-
-        private Dictionary<Image, Publication> publications;
-        private double tileWidth;
-
-        void InitializeComponent() {
-            IsManipulationEnabled = true;
-
+            // shift entire display 500px left
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
 
-            tileWidth = publications.Keys
-                .Sum(im => (im.Height / im.Source.Height) * im.Source.Width);
-
-            double offset = 0;
+            // initially layout images
+            tileWidth = 0;
             foreach (var image in publications.Keys) {
                 Children.Add(image);
-                Canvas.SetLeft(image, offset);
+                image.RenderTransform = new TranslateTransform(tileWidth, 0);
                 image.StylusSystemGesture += ImageTapped;
                 image.SnapsToDevicePixels = true;
-                offset += (image.Height / image.Source.Height) * image.Source.Width;
+                tileWidth += (image.Height / image.Source.Height) * image.Source.Width;
             }
 
+            // allow multitouch manipulation
+            IsManipulationEnabled = true;
             ManipulationStarting += BeginManipulation;
             ManipulationDelta += HandleManipulation;
             ManipulationInertiaStarting += BeginInertia;
             ManipulationCompleted += EndManipulation;
 
-            CompositionTarget.Rendering += ScrollIfNotTouched;
+            // register UI scroll at 60fps
+            timer = new DispatcherTimer {
+                Interval = TimeSpan.FromSeconds(1.0 / 60.0)
+            };
+            timer.Tick += delegate { ScrollImagesBy(RESTING_VELOCITY); };
+            Loaded += delegate { timer.Start(); };
         }
+
+        /// <summary>
+        /// Raised when a publication is selected
+        /// </summary>
+        public event PublicationSelectedHandler PublicationSelected {
+            add { AddHandler(PublicationSelectedEvent, value); }
+            remove { RemoveHandler(PublicationSelectedEvent, value); }
+        }
+
+        Dictionary<Image, Publication> publications;
+        double tileWidth;
+        DispatcherTimer timer;
 
         void BeginManipulation(object sender, ManipulationStartingEventArgs args) {
             if (args.Mode == ManipulationModes.TranslateX) {
-                CompositionTarget.Rendering -= ScrollIfNotTouched;
+                timer.IsEnabled = false;
             }
         }
 
@@ -81,18 +89,17 @@ namespace BigData.UI {
         }
 
         void EndManipulation(object sender, ManipulationCompletedEventArgs args) {
-            CompositionTarget.Rendering += ScrollIfNotTouched;
-        }
-
-        void ScrollIfNotTouched(object sender, EventArgs args) {
-            ScrollImagesBy(RESTING_VELOCITY);
+            timer.IsEnabled = true;
         }
 
         void ScrollImagesBy(double delta) {
-            foreach (var image in Children.OfType<Image>()) {
-                var nextX = (Canvas.GetLeft(image) + delta) % tileWidth;
+            foreach (var image in publications.Keys) {
+                var translation = (TranslateTransform)image.RenderTransform;
+
+                var nextX = (translation.X + delta) % tileWidth;
                 if (nextX < 0) { nextX += tileWidth; }
-                Canvas.SetLeft(image, nextX);
+
+                translation.X = nextX;
             }
         }
 
@@ -103,8 +110,21 @@ namespace BigData.UI {
             RaiseEvent(new PublicationSelectedArgs(
                 PublicationCanvas.PublicationSelectedEvent, publication));
         }
+
+        const double RESTING_VELOCITY = 0.05; // pixels per frame
+        const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
+        const double DECELERATION = (50.0 * 96) / (1000 * 1000);
+
+        static readonly RoutedEvent PublicationSelectedEvent = EventManager.RegisterRoutedEvent(
+            "PublicationSelected",
+            RoutingStrategy.Bubble,
+            typeof(PublicationSelectedHandler),
+            typeof(PublicationCanvas));
     }
 
+    /// <summary>
+    /// EventArgs containing the Publication selected by the user
+    /// </summary>
     public class PublicationSelectedArgs : RoutedEventArgs {
         public PublicationSelectedArgs(RoutedEvent e, Publication p) {
             RoutedEvent = e;
@@ -113,5 +133,12 @@ namespace BigData.UI {
         public Publication Publication;
     }
 
+    /// <summary>
+    /// Delegate describing a handler for the PublicationSelected event sent by
+    /// PublicationCanvas objects.
+    /// </summary>
+    /// <param name="sender">The source of the event</param>
+    /// <param name="args">A PublicationSelectedArgs object containing
+    /// the selected Publication</param>
     public delegate void PublicationSelectedHandler(object sender, PublicationSelectedArgs args);
 }

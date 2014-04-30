@@ -73,7 +73,9 @@ namespace BigData.UI {
 
             // for each group, construct a new PublicationCanvas
             var views = groups
-                .Select(pubs => new PublicationCanvas(pubs.ToArray(), grid.RowDefinitions.First().ActualHeight))
+                .Select(pubs => new PublicationCanvas(
+                    pubs.ToArray(),
+                    grid.RowDefinitions.First().ActualHeight))
                 .ToArray();
 
             // remove existing PublicationCanvases (if any)
