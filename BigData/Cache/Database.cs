@@ -9,18 +9,14 @@ using System.Drawing;
 using System.Windows.Media.Imaging;
 using System.IO;
 using System.Windows;
+using System.Data.Common;
 
 namespace BigData.OCLC {
     /// <summary>
     /// Manages access to the database.
     /// </summary>
-    public class Database : PublicationSource {
-        private SQLiteConnection SQLiteConnection;
-        private SQLiteCommand SQLiteCommand;
-        private uint count;
-        private bool exists;
-
-        public Action Callback { get; set; }
+    public class Database : PublicationSource, IDisposable {
+        private SQLiteConnection connection;
 
         /// <summary>
         /// Create a database instance.
@@ -28,15 +24,10 @@ namespace BigData.OCLC {
         /// <param name="key">The WSKey required to access the database.</param>
         /// <param name="feed">The rss feed that will be passed to the OCLC client.</param>
         public Database() {
-            var path = GetDatabasePath();
-            // Do nothing if database file exists
-            if (File.Exists(path))
-                exists = true;
-            else
-                exists = false;
-            var source = String.Format("Data Source = {0}; Version = 3; New = false; Compress = true", path);
-            SQLiteConnection = new SQLiteConnection(source);
-            SQLiteConnection.Open();
+            var source = String.Format(
+                "Data Source = {0}; Version = 3; New = false; Compress = true",
+                GetDatabasePath());
+            connection = new SQLiteConnection(source);
         }
 
         /// <summary>
@@ -58,97 +49,84 @@ namespace BigData.OCLC {
         /// <summary>
         /// Creates the Publication and Author tables.
         /// </summary>
-        public async Task createDatabase() {
-            // Check if DB has already been created
-            if (!exists) {
-
-                // Otherwise do things
-                string PubTable = "CREATE TABLE Publications(" +
-                                  "id INT, " +
-                                  "isbn TEXT, " +
-                                  "title TEXT, " +
-                                  "oclc TEXT, " +
-                                  "desc TEXT, " +
-                                  "cover BLOB" +
-                                  ")";
-                string AuthorTable = "CREATE TABLE Authors(" +
-                                     "id INT, " +
-                                     "author TEXT" +
-                                     ")";
-                this.ExecuteSQLiteCommand(PubTable);
-                this.ExecuteSQLiteCommand(AuthorTable);
-
-                await updateDatabase();
-            } else {
-                Application.Current.Dispatcher.Invoke(Callback);
-            }
+        public void createDatabase() {
+            // Otherwise do things
+            string PubTable = "CREATE TABLE Publications(" +
+                              "id INT, " +
+                              "isbn TEXT, " +
+                              "title TEXT, " +
+                              "oclc TEXT, " +
+                              "desc TEXT, " +
+                              "cover BLOB" +
+                              ")";
+            string AuthorTable = "CREATE TABLE Authors(" +
+                                 "id INT, " +
+                                 "author TEXT" +
+                                 ")";
+            ExecuteSQLiteCommand(PubTable);
+            ExecuteSQLiteCommand(AuthorTable);
         }
 
         /// <summary>
         /// Gets publication data from the OCLC client and stores it into the database.
         /// </summary>
         /// <returns>The number of publications entered as an unsigned int.</returns>
-        public async Task<uint> updateDatabase() {
+        public async Task<uint> UpdateDatabase() {
             // First remove entries from current table
             string deleteQuery = "DELETE FROM Publications;";
-            this.ExecuteSQLiteCommand(deleteQuery);
+            ExecuteSQLiteCommand(deleteQuery);
             deleteQuery = "DELETE FROM Authors;";
-            this.ExecuteSQLiteCommand(deleteQuery);
+            ExecuteSQLiteCommand(deleteQuery);
 
             // Now insert new entries
             Client oclc = new Client();
             var pubList = await oclc.GetPublications();
-            this.count = 0;
 
             string InsertQuery;
-            try {
-                foreach (var pub in pubList) {
-                    // Insert publication
-                    InsertQuery = "INSERT INTO Publications VALUES (" +
-                                   "(@id), " +
-                                   "(@isbn), " +
-                                   "(@title), " +
-                                   "(@oclc), " +
-                                   "(@desc), " +
-                                   "(@cover)" +
-                                   ");";
+            uint count = 0;
 
-                    // Adding parameters
-                    SQLiteCommand = new SQLiteCommand(InsertQuery, SQLiteConnection);
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@title", pub.Title));
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@oclc", pub.OCLCNumber));
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@desc", pub.Description));
+            foreach (var pub in pubList) {
+                // Insert publication
+                InsertQuery = "INSERT INTO Publications VALUES (" +
+                               "(@id), " +
+                               "(@isbn), " +
+                               "(@title), " +
+                               "(@oclc), " +
+                               "(@desc), " +
+                               "(@cover)" +
+                               ");";
 
-                    // Adding cover to query
-                    byte[] cover = BitmapToByteArray(pub.CoverImage);
-                    SQLiteCommand.Parameters.Add(new SQLiteParameter("@cover", cover));
-                    SQLiteCommand.ExecuteNonQuery();
+                // Adding parameters
+                var command = new SQLiteCommand(InsertQuery, connection);
+                command.Parameters.Add(new SQLiteParameter("@id", count));
+                command.Parameters.Add(new SQLiteParameter("@isbn", pub.ISBNs[0]));
+                command.Parameters.Add(new SQLiteParameter("@title", pub.Title));
+                command.Parameters.Add(new SQLiteParameter("@oclc", pub.OCLCNumber));
+                command.Parameters.Add(new SQLiteParameter("@desc", pub.Description));
 
-                    // Insert authors
-                    for (int j = 0; j < pub.Authors.Count; j++) {
-                        string authorQuery = "INSERT INTO Authors VALUES (" +
-                                             "(@id), " +
-                                             "(@author));";
+                // Adding cover to query
+                byte[] cover = BitmapToByteArray(pub.CoverImage);
+                command.Parameters.Add(new SQLiteParameter("@cover", cover));
+                command.ExecuteNonQuery();
 
-                        // Author parameter
-                        SQLiteCommand = new SQLiteCommand(authorQuery, SQLiteConnection);
-                        SQLiteCommand.Parameters.Add(new SQLiteParameter("@id", this.count));
-                        SQLiteCommand.Parameters.Add(new SQLiteParameter("@author", pub.Authors[j]));
-                        SQLiteCommand.ExecuteNonQuery();
-                    }
+                // Insert authors
+                for (int j = 0; j < pub.Authors.Count; j++) {
+                    string authorQuery = "INSERT INTO Authors VALUES (" +
+                                         "(@id), " +
+                                         "(@author));";
 
-                    this.count++;
+                    // Author parameter
+                    command = new SQLiteCommand(authorQuery, connection);
+                    command.Parameters.Add(new SQLiteParameter("@id", count));
+                    command.Parameters.Add(new SQLiteParameter("@author", pub.Authors[j]));
+                    command.ExecuteNonQuery();
                 }
-            } catch (Exception ex) {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
+
+                count++;
             }
 
             Console.WriteLine("Database updated");
-            Application.Current.Dispatcher.Invoke(Callback);
-            return this.count;
+            return count;
         }
 
         /// <summary>
@@ -156,10 +134,8 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="cmd">The SQLite command as a string.</param>
         private void ExecuteSQLiteCommand(string cmd) {
-            lock (SQLiteConnection) {
-                SQLiteCommand = new SQLiteCommand(cmd, SQLiteConnection);
-                SQLiteCommand.ExecuteNonQuery();
-            }
+            var command = new SQLiteCommand(cmd, connection);
+            command.ExecuteNonQuery();
         }
 
         /// <summary>
@@ -168,10 +144,8 @@ namespace BigData.OCLC {
         /// <param name="query">The Sqlite query as a string</param>
         /// <returns>A SQLiteDataReader with the results from the query.</returns>
         private SQLiteDataReader ExecuteSQLiteQuery(string query) {
-            lock (SQLiteConnection) {
-                SQLiteCommand = new SQLiteCommand(query, SQLiteConnection);
-                return SQLiteCommand.ExecuteReader();
-            }
+            var command = new SQLiteCommand(query, connection);
+            return command.ExecuteReader();
         }
 
         /// <summary>
@@ -193,39 +167,22 @@ namespace BigData.OCLC {
         }
 
         /// <summary>
-        /// Used for printing the contents of the database.
-        /// </summary>
-        /// <returns>A formatted string of the database.</returns>
-        public string PrintDatabase() {
-            string s = "";
-            string query = "SELECT isbn FROM Publications;";
-            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
-            while (reader.Read()) {
-                s = s + "Entry: " + reader["isbn"] +
-                        "\n\tTitle:\t" + reader["title"] + "\n";
-            }
-
-            return s;
-        }
-
-        /// <summary>
         /// Parses a Sqlite data reader for the publication information and 
         /// creates a list of publications from it.
         /// </summary>
         /// <param name="reader">The SQLiteDataReader to be parsed</param>
         /// <returns>A list of publications</returns>
-        private List<Publication> getPublicationsFromReader(SQLiteDataReader reader) {
-            var PubList = new List<Publication>();
-            int count = 0;
-
+        private IEnumerable<Publication> getPublicationsFromReader(DbDataReader reader) {
             while (reader.Read()) {
                 Publication pub = new Publication();
                 pub.Title = (string)reader["title"];
                 pub.OCLCNumber = (string)reader["oclc"];
                 pub.ISBNs = new List<string>();
                 pub.ISBNs.Add((string)reader["isbn"]);
-                if (reader["desc"].GetType() != typeof(DBNull))
+                if (reader["desc"].GetType() != typeof(DBNull)) {
                     pub.Description = (string)reader["desc"];
+                }
+                var id = reader["id"];
 
                 // Get the cover
                 MemoryStream ms = new MemoryStream((byte[])reader["cover"]);
@@ -237,19 +194,16 @@ namespace BigData.OCLC {
                 pub.CoverImage = image;
 
                 // Get the authors
-                string query = "SELECT author FROM Authors WHERE id = " + count + ";";
-                SQLiteDataReader authorReader = this.ExecuteSQLiteQuery(query);
+                string query = "SELECT author FROM Authors WHERE id = " + id + ";";
+                DbDataReader authorReader = ExecuteSQLiteQuery(query);
                 pub.Authors = new List<string>();
                 while (authorReader.Read()) {
                     if (authorReader["author"].GetType() != typeof(DBNull))
                         pub.Authors.Add((string)authorReader["author"]);
                 }
 
-                PubList.Add(pub);
-                count++;
+                yield return pub;
             }
-
-            return PubList;
         }
 
         /// <summary>
@@ -257,42 +211,30 @@ namespace BigData.OCLC {
         /// </summary>
         /// <returns>An array of the complete list of publications.</returns>
         public async Task<IEnumerable<Publication>> GetPublications() {
-            string query = "SELECT * FROM Publications;";
-            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
-            return getPublicationsFromReader(reader);
-        }
+            var path = GetDatabasePath();
 
-        /// <summary>
-        /// Pulls publications from the database based on a search query
-        /// </summary>
-        /// <param name="query">The search term</param>
-        /// <param name="field">The field that should be searched, an enum</param>
-        /// <returns>An array of the publications that matched</returns>
-        public IEnumerable<Publication> GetPublicationByField(string query, Publication.SearchField field) {
-            string sqlQuery = "SELECT * FROM Publications WHERE " + field;
-            switch (field) {
-                case Publication.SearchField.ISBN:
-                    sqlQuery = sqlQuery + " = " + query;
-                    break;
-                case Publication.SearchField.Title:
-                    sqlQuery = sqlQuery + " LIKE " + query;
-                    break;
-                case Publication.SearchField.Desc:
-                    sqlQuery = sqlQuery + " LIKE " + query;
-                    break;
+            if (connection.State != System.Data.ConnectionState.Open) {
+                connection.Open();
             }
 
-            sqlQuery = sqlQuery + ";";
+            if (!File.Exists(path)) {
+                createDatabase();
+                await UpdateDatabase();
+            }
 
-            SQLiteDataReader reader = this.ExecuteSQLiteQuery(query);
-            return getPublicationsFromReader(reader);
+            string query = "SELECT * FROM Publications;";
+            DbDataReader reader = ExecuteSQLiteQuery(query);
+            var pubs = getPublicationsFromReader(reader);
+            return pubs;
         }
 
         /// <summary>
         /// Closes the connection to the SQLite database.
         /// </summary>
-        public void closeDatabase() {
-            SQLiteConnection.Close();
+        public void Dispose() {
+            if (connection.State == System.Data.ConnectionState.Open) {
+                connection.Close();
+            }
         }
     }
 }

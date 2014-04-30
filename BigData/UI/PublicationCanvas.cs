@@ -14,11 +14,9 @@ using System.Windows.Input;
 
 namespace BigData.UI {
     public class PublicationCanvas : Canvas {
-        const double RESTING_VELOCITY = 0.1; // pixels per frame
-        const double DECELERATE_COEF = 0.9;
-        const double MAX_STILL_TIME = 5000; // milliseconds
-        const double MOUSE_WAIT_TIME = 16; // milliseconds
+        const double RESTING_VELOCITY = 0.05; // pixels per frame
         const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
+        const double DECELERATION = (50.0 * 96) / (1000 * 1000);
 
         public PublicationCanvas(Publication[] pubs, double height) {
             publications = pubs.ToDictionary(
@@ -28,77 +26,92 @@ namespace BigData.UI {
             InitializeComponent();
         }
 
-        public Publication GetPublicationAtPoint(double x) {
-            x -= RENDER_TRANSFORM;
-            foreach (var image in Children.OfType<Image>()) {
-                var left = Canvas.GetLeft(image);
-                var right = left + image.ActualWidth;
+        public static readonly RoutedEvent PublicationSelectedEvent = EventManager.RegisterRoutedEvent(
+            "PublicationSelected",
+            RoutingStrategy.Bubble,
+            typeof(PublicationSelectedHandler),
+            typeof(PublicationCanvas));
 
-                if (left < x && right > x) {
-                    return publications[image];
-                }
-            }
-
-            return null;
+        public event PublicationSelectedHandler PublicationSelected {
+            add { AddHandler(PublicationSelectedEvent, value); }
+            remove { RemoveHandler(PublicationSelectedEvent, value); }
         }
 
-        private bool isBeingManipulated;
         private Dictionary<Image, Publication> publications;
         private double tileWidth;
 
         void InitializeComponent() {
             IsManipulationEnabled = true;
-           
-            //CompositionTarget.Rendering += ScrollImages;
-            //CompositionTarget.Rendering += UpdateVelocity;
 
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
 
-            tileWidth = publications.Keys.Aggregate(
-                0.0,
-                (acc, im) => acc + (im.Height / im.Source.Height) * im.Source.Width
-            );
+            tileWidth = publications.Keys
+                .Sum(im => (im.Height / im.Source.Height) * im.Source.Width);
 
             double offset = 0;
             foreach (var image in publications.Keys) {
                 Children.Add(image);
                 Canvas.SetLeft(image, offset);
+                image.StylusSystemGesture += ImageTapped;
+                image.SnapsToDevicePixels = true;
                 offset += (image.Height / image.Source.Height) * image.Source.Width;
             }
 
-            ManipulationStarting += (s, e) => {
-                if (e.Mode == ManipulationModes.TranslateX) {
-                    isBeingManipulated = true;
-                }
-            };
+            ManipulationStarting += BeginManipulation;
+            ManipulationDelta += HandleManipulation;
+            ManipulationInertiaStarting += BeginInertia;
+            ManipulationCompleted += EndManipulation;
 
-            ManipulationDelta += (s, e) => {
-                var delta = e.DeltaManipulation.Translation.X;
-                ScrollImagesBy(delta);
-            };
+            CompositionTarget.Rendering += ScrollIfNotTouched;
+        }
 
-            ManipulationInertiaStarting += (s, e) => {
-                // Deceleration is 50in/s^2
-                e.TranslationBehavior.DesiredDeceleration = (50.0 * 96) / (1000 * 1000);
-            };
+        void BeginManipulation(object sender, ManipulationStartingEventArgs args) {
+            if (args.Mode == ManipulationModes.TranslateX) {
+                CompositionTarget.Rendering -= ScrollIfNotTouched;
+            }
+        }
 
-            ManipulationCompleted += (s, e) => {
-                isBeingManipulated = false;
-            };
+        void HandleManipulation(object sender, ManipulationDeltaEventArgs args) {
+            var delta = args.DeltaManipulation.Translation.X;
+            ScrollImagesBy(delta);
+        }
 
-            CompositionTarget.Rendering += delegate {
-                if (!isBeingManipulated) { ScrollImagesBy(0.1); };
-            };
+        void BeginInertia(object sender, ManipulationInertiaStartingEventArgs args) {
+            args.TranslationBehavior.DesiredDeceleration = DECELERATION;
+        }
+
+        void EndManipulation(object sender, ManipulationCompletedEventArgs args) {
+            CompositionTarget.Rendering += ScrollIfNotTouched;
+        }
+
+        void ScrollIfNotTouched(object sender, EventArgs args) {
+            ScrollImagesBy(RESTING_VELOCITY);
         }
 
         void ScrollImagesBy(double delta) {
-            if (isBeingManipulated) { return; }
-
             foreach (var image in Children.OfType<Image>()) {
                 var nextX = (Canvas.GetLeft(image) + delta) % tileWidth;
                 if (nextX < 0) { nextX += tileWidth; }
                 Canvas.SetLeft(image, nextX);
             }
         }
+
+        void ImageTapped(object sender, StylusSystemGestureEventArgs args) {
+            if (args.SystemGesture != SystemGesture.Tap) { return; }
+
+            var publication = publications[(Image)sender];
+            RaiseEvent(new PublicationSelectedArgs(
+                PublicationCanvas.PublicationSelectedEvent, publication));
+        }
     }
+
+    public class PublicationSelectedArgs : RoutedEventArgs {
+        public PublicationSelectedArgs(RoutedEvent e, Publication p) {
+            RoutedEvent = e;
+            Publication = p;
+        }
+        public Publication Publication;
+    }
+
+    public delegate void PublicationSelectedHandler(object sender, PublicationSelectedArgs args);
 }

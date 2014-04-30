@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Controls;
 using System.Security.Cryptography;
+using Newtonsoft.Json;
 
 namespace BigData.OCLC {
     /// <summary>
@@ -30,7 +31,10 @@ namespace BigData.OCLC {
         /// <param name="feedUri">The RSS feed from which to fetch books</param>
         public Client() {
             WSKey = Properties.Settings.Default.WSKey;
-            FeedUri = Properties.Settings.Default.RSSUri + "/rss?count=" + Properties.Settings.Default.Count;
+
+            var baseUri = new Uri(Properties.Settings.Default.RSSUri);
+            FeedUri = new Uri(
+                baseUri, "rss?count=" + Properties.Settings.Default.Count);
         }
 
         /// <summary>
@@ -38,15 +42,20 @@ namespace BigData.OCLC {
         /// </summary>
         /// <returns>An array of publications from the OCLC RSS API</returns>
         public async Task<IEnumerable<Publication>> GetPublications() {
-            var doc = XDocument.Load(FeedUri);
-            var tasks = from item in doc.Descendants("item")
-                        let uri = new Uri(item.Element("link").Value)
-                        let oclcNum = uri.Segments.Last()
-                        select FetchPublicationFromOCLCNumber(oclcNum);
+            var request = WebRequest.CreateHttp(FeedUri);
 
-            var pubs = await Task.WhenAll(tasks);
-            Console.WriteLine("Done loading publications from OCLC");
-            return pubs;
+            using (var response = await request.GetResponseAsync()) {
+                var doc = XDocument.Load(response.GetResponseStream());
+
+                var tasks = from item in doc.Descendants("item")
+                            let uri = new Uri(item.Element("link").Value)
+                            let oclcNum = uri.Segments.Last()
+                            select FetchPublicationFromOCLCNumber(oclcNum);
+
+                var pubs = await Task.WhenAll(tasks);
+                Console.WriteLine("Done loading publications from OCLC");
+                return pubs;
+            }
         }
 
         /// <summary>
@@ -57,14 +66,14 @@ namespace BigData.OCLC {
         /// <summary>
         /// The RSS feed URI from which to fetch publications
         /// </summary>
-        public string FeedUri { get; set; }
+        public Uri FeedUri { get; set; }
 
         /// <summary>
         /// Populates a publication object from an OCLC number
         /// </summary>
         /// <param name="oclcNumber">The OCLC number representing the material</param>
         /// <returns>A publication object</returns>
-        private async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber) {
+        async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber) {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
             var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
 
@@ -118,11 +127,11 @@ namespace BigData.OCLC {
             }
         }
 
-        public static async Task<IEnumerable<string>> FetchAllOCLCNumbers(string oclcNumber) {
+        static async Task<IEnumerable<string>> FetchAllOCLCNumbers(string oclcNumber) {
             var baseUri = new Uri(@"http://xisbn.worldcat.org/webservices/xid/oclcnum/" + oclcNumber);
 
             var token = Properties.Settings.Default.Token;
-            var ip = GetIPAddress();
+            var ip = await GetIPAddress();
             var secret = Properties.Settings.Default.Secret;
             string hexDigest;
 
@@ -151,15 +160,28 @@ namespace BigData.OCLC {
             }
         }
 
-        private static string GetIPAddress() {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in host.AddressList) {
-                if (ip.AddressFamily == AddressFamily.InterNetwork) {
-                    return ip.ToString();
-                }
+        static string localIPAddress;
+
+        struct IPResult {
+            public string origin;
+        }
+
+        public async static Task<string> GetIPAddress() {
+            if (localIPAddress != null) {
+                return localIPAddress;
             }
 
-            throw new Exception("This system has no public INET addresses!");
+            var requestUri = new Uri(@"http://httpbin.org/ip");
+            var request = WebRequest.CreateHttp(requestUri);
+
+            using (var response = await request.GetResponseAsync())
+            using (var reader = new StreamReader(response.GetResponseStream())) {
+                var result = JsonConvert.DeserializeObject<IPResult>(
+                    await reader.ReadToEndAsync());
+                localIPAddress = result.origin;
+            }
+
+            return localIPAddress;
         }
 
         /// <summary>
@@ -167,7 +189,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="oclcNumber">The OCLC number representing the material</param>
         /// <returns>Cover Image URI</returns>
-        public async static Task<Uri[]> GetOCLCCoverImageUriAsync(string oclcNumber) {
+        async static Task<Uri[]> GetOCLCCoverImageUriAsync(string oclcNumber) {
             var baseUri = new Uri(@"https://bucknell.worldcat.org/oclc/");
             var oclcUri = new Uri(baseUri, oclcNumber);
             var request = WebRequest.CreateHttp(oclcUri);
@@ -192,7 +214,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="imageUri">URI of the cover image</param>
         /// <returns>Bitmap image of the cover</returns>
-        private static async Task<BitmapSource> GetBitmapImage(Uri imageUri) {
+        static async Task<BitmapSource> GetBitmapImage(Uri imageUri) {
             var request = WebRequest.CreateHttp(imageUri);
 
             var ms = new MemoryStream();
@@ -219,7 +241,7 @@ namespace BigData.OCLC {
             }
         }
 
-        private BitmapSource DrawPublicationImage(string title, string author) {
+        BitmapSource DrawPublicationImage(string title, string author) {
             var size = new Size(800, 1200);
 
             var titleText = new FormattedText(title,

@@ -20,15 +20,15 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace BigData.UI {
-    public class MainWindow : Window {
+    class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();
         }
 
-        private Grid grid;
-        private PublicationCanvas[] views;
+        public  OCLC.Database PublicationCache { get; set; }
+        public Management_Interface.ManagementServer Server { get; set; }
 
-        const int MAX_TAP_TIME = 75; // ms
+        private Grid grid;
 
         private void InitializeComponent() {
             WindowStyle = WindowStyle.None;
@@ -37,122 +37,91 @@ namespace BigData.UI {
             Title = "Digital Publication Display";
 
             Loaded += PopulateDisplay;
+            Loaded += StartServer;
+            Closed += StopServer;
 
+            // set up a 1 by 3 grid to hold PublicationCanvas objects
             grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition());
+            grid.RowDefinitions.Add(new RowDefinition());
+            grid.RowDefinitions.Add(new RowDefinition());
+            grid.RowDefinitions.Add(new RowDefinition());
             Content = grid;
-            views = new PublicationCanvas[3];
-
-            ColumnDefinition col = new ColumnDefinition();
-            grid.ColumnDefinitions.Add(col);
-
-            RowDefinition row1 = new RowDefinition();
-            RowDefinition row2 = new RowDefinition();
-            RowDefinition row3 = new RowDefinition();
-            grid.RowDefinitions.Add(row1);
-            grid.RowDefinitions.Add(row2);
-            grid.RowDefinitions.Add(row3);
 
             DisableEdgeGestures();
         }
 
         async void UpdateDisplay() {
-            var src = ((App)Application.Current).Source;
-            var publications = (await src.GetPublications()).ToArray();
+            FlashMessage("Loading...", Brushes.LightYellow);
 
-            var imagesPerRow = publications.Length / 3;
+            var allPublications = await PublicationCache.GetPublications();
 
-            for (int i = 0; i < views.Length; i++) {
-                grid.Children.Remove(views[i]);
+            // divide publications into three groups
+            var groups = allPublications
+                .Select((pub, i) => new { pub, i })
+                .GroupBy(group => group.i % 3, group => group.pub);
+
+            // for each group, construct a new PublicationCanvas
+            var views = groups
+                .Select(pubs => new PublicationCanvas(pubs.ToArray(), grid.RowDefinitions.First().ActualHeight))
+                .ToArray();
+
+            // remove existing PublicationCanvases (if any)
+            var canvases = grid.Children.OfType<PublicationCanvas>().ToArray();
+            foreach (var canvas in canvases) {
+                grid.Children.Remove(canvas);
             }
 
-            views[0] = new PublicationCanvas(publications.Take(imagesPerRow).ToArray(), Height / 3);
-            views[1] = new PublicationCanvas(publications.Skip(imagesPerRow).Take(imagesPerRow).ToArray(), Height / 3);
-            views[2] = new PublicationCanvas(publications.Skip(imagesPerRow * 2).Take(imagesPerRow).ToArray(), Height / 3);
-
+            // add new PublicationCanvases
             for (int i = 0; i < views.Length; i++) {
                 Grid.SetRow(views[i], i);
                 grid.Children.Add(views[i]);
+                views[i].PublicationSelected += ShowPublicationInfo;
             }
 
             FlashMessage("Loaded", Brushes.LightGreen);
         }
 
-        async void PopulateDisplay(object sender, RoutedEventArgs args) {
-            FlashMessage("Loading...", Brushes.LightYellow);
-            var src = new OCLC.Database();
-            ((App)App.Current).Source = src;
-            src.Callback = UpdateDisplay;
-            await src.createDatabase();
-            
+        void PopulateDisplay(object sender, RoutedEventArgs args) {
+            PublicationCache = new OCLC.Database();
+            UpdateDisplay();
+        }
 
-            StylusSystemGesture += (s, e) => {
-                if (e.SystemGesture == SystemGesture.Tap) {
-                    ShowPublicationAtPoint(e.GetPosition(this));
-                }
+        void StartServer(object sender, EventArgs args) {
+            Server = new Management_Interface.ManagementServer();
+            Server.CreateServer();
+            Server.UpdateDatabaseAction = async delegate {
+                await PublicationCache.UpdateDatabase();
+                Application.Current.Dispatcher.Invoke(UpdateDisplay);
             };
+        }
 
-            MouseUp += (s, e) => {
-                ShowPublicationAtPoint(e.GetPosition(this));
-            };
+        void StopServer(object sender, EventArgs args) {
+            Server.StopServer();
         }
 
         void FlashMessage(string text, Brush background) {
-            var label = new Label {
+            var label = new FlashLabel {
                 Content = text,
                 Background = background,
-                FontFamily = new FontFamily("Segoe UI Light"),
-                FontSize = 30,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-                VerticalAlignment = System.Windows.VerticalAlignment.Top,
-                VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
-                HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
-                Height = 60,
-                RenderTransform = new TranslateTransform(0, -60),
+                FlashDuration = TimeSpan.FromSeconds(5),
             };
             Grid.SetRow(label, 0);
             Grid.SetColumn(label, 0);
-            Grid.SetZIndex(label, 10);
+            Grid.SetZIndex(label, int.MaxValue);
             grid.Children.Add(label);
 
-            var inAnimation = new DoubleAnimation {
-                From = -60,
-                To = 0,
-                Duration = new Duration(TimeSpan.FromSeconds(0.25)),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut },
-            };
-            label.RenderTransform.ApplyAnimationClock(
-                TranslateTransform.YProperty,
-                inAnimation.CreateClock()
-            );
-
-            var timer = new DispatcherTimer {
-                Interval = TimeSpan.FromSeconds(5),
-            };
-            timer.Start();
-            timer.Tick += delegate {
-                timer.Stop();
-                var outAnimation = new DoubleAnimation {
-                    From = 0,
-                    To = -60,
-                    Duration = new Duration(TimeSpan.FromSeconds(0.25)),
-                    EasingFunction = new CubicEase {  EasingMode = EasingMode.EaseInOut },
-                };
-                label.RenderTransform.ApplyAnimationClock(
-                    TranslateTransform.YProperty,
-                    outAnimation.CreateClock()
-                );
-                outAnimation.Completed += delegate { grid.Children.Remove(label); };
-            };
-
+            label.Done += delegate { grid.Children.Remove(label); };
         }
 
-        void ShowPublicationAtPoint(Point point) {
-            int index = (int)(point.Y * 3 / this.Height);
-            var pub = views[index].GetPublicationAtPoint(point.X);
+        void ShowPublicationInfo(object sender, PublicationSelectedArgs args) {
+            // if we're already displaying a publication info grid, remove it
+            var children = grid.Children.OfType<InfoGrid>().ToArray();
+            foreach (var child in children) {
+                grid.Children.Remove(child);
+            }
 
-            if (pub == null) return;
-
-            var view = new InfoGrid(pub);
+            var view = new InfoGrid(args.Publication);
             Grid.SetRow(view, 0);
             Grid.SetRowSpan(view, 3);
             Grid.SetZIndex(view, 10);
@@ -162,9 +131,7 @@ namespace BigData.UI {
                 FlashMessage("Email Sent!", Brushes.LightGreen);
             };
 
-            view.Done += (s, e) => {
-                grid.Children.Remove(view);
-            };
+            view.Done += delegate { grid.Children.Remove(view); };
         }
 
         void DisableEdgeGestures() {
@@ -173,11 +140,11 @@ namespace BigData.UI {
 
             var success = SetTouchDisableProperty(hwnd, true);
             if (!success) {
-                MessageBox.Show("Failed to set touch disable property");
+                Console.Error.WriteLine("Failed to set touch disable property");
             }
         }
 
         [DllImport("NativeWrappers.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool SetTouchDisableProperty(IntPtr hwnd, bool fDisableTouch);
+        static extern bool SetTouchDisableProperty(IntPtr hwnd, bool fDisableTouch);
     }
 }

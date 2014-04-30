@@ -9,19 +9,51 @@ using System.IO;
 
 namespace BigData.Management_Interface {
     class ManagementServer {
-        private static HttpListener listener = new HttpListener();
 
+        public ManagementServer() {
+            listener = new HttpListener();
+        }
+
+        public Action UpdateDatabaseAction { get; set; }
+
+        /// <summary>
+        /// Creates a local server and begins listening for requests.
+        /// </summary>
+        public void CreateServer() {
+            Console.WriteLine("Starting server...");
+            listener.Prefixes.Add(ListenPrefix);
+            listener.Start();
+
+            responseThread = new Thread(HandleRequests);
+            responseThread.Start();
+            Console.WriteLine("Server listening on " + ListenPrefix);
+        }
+
+        public void StopServer() {
+            if (responseThread.IsAlive) {
+                responseThread.Abort();
+            }
+
+            if (listener.IsListening) {
+                Console.WriteLine("Shutting down server...");
+                listener.Stop();
+                Console.WriteLine("Server shut down");
+            }
+        }
+
+        HttpListener listener;
+        Thread responseThread;
 
         // Finds the path to the html files in the project space
         // There is probably a better place to put them
-        private static String htmlPath = Path.Combine(
+        static String ResourcePath = Path.Combine(
             Environment.CurrentDirectory,
             @"Management Interface"
          );
 
         // Might want to change.
         // If so, also change in confirmation.html
-        private static String pageURL = "http://+:80/";
+        static String ListenPrefix = "http://+:80/";
 
 
         /// <summary>
@@ -29,14 +61,20 @@ namespace BigData.Management_Interface {
         /// On a post request it will update the settings.
         /// On any other type of request it will send the management page.
         /// </summary>
-        static void ResponseThread() {
+        void HandleRequests() {
             while (true) {
                 HttpListenerContext context;
 
                 try {
                     context = listener.GetContext();
-                } catch (Exception) {
+                } catch (ThreadAbortException) {
+                    // if the thread aborts here, exit gracefully
                     return;
+                } catch (Exception ex) {
+                    // if we get some other exception, log it, but keep handling requests
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                    continue;
                 }
 
                 byte[] responsePage;
@@ -70,18 +108,18 @@ namespace BigData.Management_Interface {
                         Properties.Settings.Default.Save();
 
                         // Set confirmation page
-                        responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "confirmation.html"));
+                        responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "confirmation.html"));
                     } catch (Exception e) {
                         // fugg it
                         Console.WriteLine("Y U No integer?: " + e);
 
                         // Set fail page
-                        responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
-                    }  
+                        responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "fail.html"));
+                    }
                 } else if (context.Request.HttpMethod == "GET" && context.Request.Url.AbsolutePath == "/") {
                     // Read management html from file
-                    string htmlString = File.ReadAllText(Path.Combine(htmlPath, "management.html"));
-                    Dictionary<string, string> values = new Dictionary<string,string>();
+                    string htmlString = File.ReadAllText(Path.Combine(ResourcePath, "management.html"));
+                    Dictionary<string, string> values = new Dictionary<string, string>();
                     values["emailsSent"] = "0";
                     values["rssFeed"] = Properties.Settings.Default.RSSUri;
                     values["count"] = Properties.Settings.Default.Count.ToString();
@@ -93,17 +131,12 @@ namespace BigData.Management_Interface {
                     responsePage = System.Text.Encoding.UTF8.GetBytes(htmlValues);
                 } else if (context.Request.HttpMethod == "POST" && context.Request.Url.AbsolutePath == "/update") {
                     Console.WriteLine("Refreshing database...");
-                    try {
-                        ((App)App.Current).Source.updateDatabase();
-                    } catch (Exception ex) {
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine(ex.StackTrace);
-                    }
-                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "confirmation.html"));
+                    UpdateDatabaseAction();
+                    responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "confirmation.html"));
                 } else {
-                    responsePage = File.ReadAllBytes(Path.Combine(htmlPath, "fail.html"));
+                    responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "fail.html"));
                 }
-                
+
                 // Send the page
                 context.Response.ContentType = "text/html";
                 context.Response.OutputStream.Write(responsePage, 0, responsePage.Length);
@@ -114,22 +147,6 @@ namespace BigData.Management_Interface {
         }
 
 
-        /// <summary>
-        /// Creates a local server and begins listening for requests.
-        /// </summary>
-        public void CreateServer() {
-            Console.WriteLine("Starting server...");
-            listener.Prefixes.Add(pageURL);
-            listener.Start();
-            Thread responseThread = new Thread(ResponseThread);
-            responseThread.Start();
-            Console.WriteLine("Server setup complete");
-        }
 
-        public void StopServer() {
-            if (listener.IsListening) {
-                listener.Stop();
-            }
-        }
     }
 }
