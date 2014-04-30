@@ -11,9 +11,11 @@ using Nustache.Core;
 using System.Windows.Media.Imaging;
 using System.IO;
 
-
-
 namespace BigData.Emailer {
+
+    /// <summary>
+    /// Manages sending emails to users and resolving usernames to full names.
+    /// </summary>
     public class Emailer {
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace BigData.Emailer {
         /// </summary>
         /// <param name="username">Bucknell username</param>
         /// <returns>Full name associated with username</returns>
-        private static async Task<string> getFullName(String username) {
+        static async Task<string> getFullName(String username) {
             var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
             var request = WebRequest.CreateHttp(uri);
             var response = await request.GetResponseAsync();
@@ -90,7 +92,7 @@ namespace BigData.Emailer {
         /// </summary>
         /// <param name="username">Bucknell username</param>
         /// <returns>First name associated with username</returns>
-        private static async Task<string> getFirstName(String username) {
+        static async Task<string> getFirstName(String username) {
             var uri = new Uri(@"https://m.bucknell.edu/mobi-web/api/?module=people&q=" + username);
             var request = WebRequest.CreateHttp(uri);
             var response = await request.GetResponseAsync();
@@ -110,7 +112,7 @@ namespace BigData.Emailer {
         /// <param name="pub">The Publication instance to be advertised</param>
         /// <param name="cover">The cover image of the publications</param>
         /// <returns>HTML body of email</returns>
-        private static string getMessageBody(String name, Publication pub, LinkedResource cover) {
+        static string getMessageBody(String name, Publication pub, LinkedResource cover) {
             string sTemplate = @"
 <p>{{name}},</p>
 <p><a href='{{link}}'>Click here</a> to borrow {{pubname}}.</p>
