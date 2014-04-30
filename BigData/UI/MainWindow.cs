@@ -44,18 +44,22 @@ namespace BigData.UI {
             Closed += StopServer;
 
             // set up a 1 by 3 grid to hold PublicationCanvas objects
+            grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.RowDefinitions.Add(new RowDefinition());
             grid.RowDefinitions.Add(new RowDefinition());
             grid.RowDefinitions.Add(new RowDefinition());
             Content = grid;
 
+            publicationCache = new OCLC.Database();
+            server = new Management_Interface.ManagementServer();
+
             DisableEdgeGestures();
         }
 
-        OCLC.Database publicationCache = new OCLC.Database();
-        Management_Interface.ManagementServer server = new Management_Interface.ManagementServer();
-        Grid grid = new Grid();
+        OCLC.Database publicationCache;
+        Management_Interface.ManagementServer server;
+        Grid grid;
 
         async void UpdateDisplay() {
             FlashMessage("Loading...", Brushes.LightYellow);
