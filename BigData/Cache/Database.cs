@@ -16,7 +16,6 @@ namespace BigData.OCLC {
     /// Manages access to the database.
     /// </summary>
     public class Database : PublicationSource, IDisposable {
-        private SQLiteConnection connection;
 
         /// <summary>
         /// Create a database instance.
@@ -28,43 +27,34 @@ namespace BigData.OCLC {
                 "Data Source = {0}; Version = 3; New = false; Compress = true",
                 GetDatabasePath());
             connection = new SQLiteConnection(source);
+            connection.Open();
         }
 
         /// <summary>
-        /// Returns the location of the database file in the file system.
+        /// Pulls all information from all publications from the database.
         /// </summary>
-        /// <returns>The path to the database file as a string.</returns>
-        private string GetDatabasePath() {
-            var appData = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "BigData");
+        /// <returns>An array of the complete list of publications.</returns>
+        public async Task<IEnumerable<Publication>> GetPublications() {
+            var path = GetDatabasePath();
 
-            if (!Directory.Exists(appData)) {
-                Directory.CreateDirectory(appData);
+            if (!File.Exists(path)) {
+                CreateDatabase();
+                await UpdateDatabase();
             }
 
-            return Path.Combine(appData, "publications.db");
+            string query = "SELECT * FROM Publications;";
+            DbDataReader reader = ExecuteSQLiteQuery(query);
+            var pubs = getPublicationsFromReader(reader);
+            return pubs;
         }
 
         /// <summary>
-        /// Creates the Publication and Author tables.
+        /// Closes the connection to the SQLite database.
         /// </summary>
-        public void createDatabase() {
-            // Otherwise do things
-            string PubTable = "CREATE TABLE Publications(" +
-                              "id INT, " +
-                              "isbn TEXT, " +
-                              "title TEXT, " +
-                              "oclc TEXT, " +
-                              "desc TEXT, " +
-                              "cover BLOB" +
-                              ")";
-            string AuthorTable = "CREATE TABLE Authors(" +
-                                 "id INT, " +
-                                 "author TEXT" +
-                                 ")";
-            ExecuteSQLiteCommand(PubTable);
-            ExecuteSQLiteCommand(AuthorTable);
+        public void Dispose() {
+            if (connection.State == System.Data.ConnectionState.Open) {
+                connection.Close();
+            }
         }
 
         /// <summary>
@@ -129,11 +119,50 @@ namespace BigData.OCLC {
             return count;
         }
 
+        SQLiteConnection connection;
+
+        /// <summary>
+        /// Returns the location of the database file in the file system.
+        /// </summary>
+        /// <returns>The path to the database file as a string.</returns>
+        string GetDatabasePath() {
+            var appData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "BigData");
+
+            if (!Directory.Exists(appData)) {
+                Directory.CreateDirectory(appData);
+            }
+
+            return Path.Combine(appData, "publications.db");
+        }
+
+        /// <summary>
+        /// Creates the Publication and Author tables.
+        /// </summary>
+        void CreateDatabase() {
+            // Otherwise do things
+            string PubTable = "CREATE TABLE Publications(" +
+                              "id INT, " +
+                              "isbn TEXT, " +
+                              "title TEXT, " +
+                              "oclc TEXT, " +
+                              "desc TEXT, " +
+                              "cover BLOB" +
+                              ")";
+            string AuthorTable = "CREATE TABLE Authors(" +
+                                 "id INT, " +
+                                 "author TEXT" +
+                                 ")";
+            ExecuteSQLiteCommand(PubTable);
+            ExecuteSQLiteCommand(AuthorTable);
+        }
+
         /// <summary>
         /// Executes a non-query type SQLite command.
         /// </summary>
         /// <param name="cmd">The SQLite command as a string.</param>
-        private void ExecuteSQLiteCommand(string cmd) {
+        void ExecuteSQLiteCommand(string cmd) {
             var command = new SQLiteCommand(cmd, connection);
             command.ExecuteNonQuery();
         }
@@ -143,7 +172,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="query">The Sqlite query as a string</param>
         /// <returns>A SQLiteDataReader with the results from the query.</returns>
-        private SQLiteDataReader ExecuteSQLiteQuery(string query) {
+        SQLiteDataReader ExecuteSQLiteQuery(string query) {
             var command = new SQLiteCommand(query, connection);
             return command.ExecuteReader();
         }
@@ -153,7 +182,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="img">The image to be converted.</param>
         /// <returns>The resulting byte array.</returns>
-        private static byte[] BitmapToByteArray(BitmapSource img) {
+        static byte[] BitmapToByteArray(BitmapSource img) {
             try {
                 MemoryStream ms = new MemoryStream();
                 PngBitmapEncoder encoder = new PngBitmapEncoder();
@@ -172,7 +201,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <param name="reader">The SQLiteDataReader to be parsed</param>
         /// <returns>A list of publications</returns>
-        private IEnumerable<Publication> getPublicationsFromReader(DbDataReader reader) {
+        IEnumerable<Publication> getPublicationsFromReader(DbDataReader reader) {
             while (reader.Read()) {
                 Publication pub = new Publication();
                 pub.Title = (string)reader["title"];
@@ -203,37 +232,6 @@ namespace BigData.OCLC {
                 }
 
                 yield return pub;
-            }
-        }
-
-        /// <summary>
-        /// Pulls all information from all publications from the database.
-        /// </summary>
-        /// <returns>An array of the complete list of publications.</returns>
-        public async Task<IEnumerable<Publication>> GetPublications() {
-            var path = GetDatabasePath();
-
-            if (connection.State != System.Data.ConnectionState.Open) {
-                connection.Open();
-            }
-
-            if (!File.Exists(path)) {
-                createDatabase();
-                await UpdateDatabase();
-            }
-
-            string query = "SELECT * FROM Publications;";
-            DbDataReader reader = ExecuteSQLiteQuery(query);
-            var pubs = getPublicationsFromReader(reader);
-            return pubs;
-        }
-
-        /// <summary>
-        /// Closes the connection to the SQLite database.
-        /// </summary>
-        public void Dispose() {
-            if (connection.State == System.Data.ConnectionState.Open) {
-                connection.Close();
             }
         }
     }
