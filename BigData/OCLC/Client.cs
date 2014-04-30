@@ -30,10 +30,10 @@ namespace BigData.OCLC {
         /// <param name="key">The WSKey to use to access OCLC APIs</param>
         /// <param name="feedUri">The RSS feed from which to fetch books</param>
         public Client() {
-            WSKey = Properties.Settings.Default.WSKey;
+            wsKey = Properties.Settings.Default.WSKey;
 
             var baseUri = new Uri(Properties.Settings.Default.RSSUri);
-            FeedUri = new Uri(
+            feedUri = new Uri(
                 baseUri, "rss?count=" + Properties.Settings.Default.Count);
         }
 
@@ -42,7 +42,7 @@ namespace BigData.OCLC {
         /// </summary>
         /// <returns>An array of publications from the OCLC RSS API</returns>
         public async Task<IEnumerable<Publication>> GetPublications() {
-            var request = WebRequest.CreateHttp(FeedUri);
+            var request = WebRequest.CreateHttp(feedUri);
 
             using (var response = await request.GetResponseAsync()) {
                 var doc = XDocument.Load(response.GetResponseStream());
@@ -58,15 +58,8 @@ namespace BigData.OCLC {
             }
         }
 
-        /// <summary>
-        /// Web Services key needed to access OCLC APIs
-        /// </summary>
-        public string WSKey { get; set; }
-
-        /// <summary>
-        /// The RSS feed URI from which to fetch publications
-        /// </summary>
-        public Uri FeedUri { get; set; }
+        string wsKey;
+        Uri feedUri;
 
         /// <summary>
         /// Populates a publication object from an OCLC number
@@ -75,7 +68,7 @@ namespace BigData.OCLC {
         /// <returns>A publication object</returns>
         async Task<Publication> FetchPublicationFromOCLCNumber(string oclcNumber) {
             var baseUri = @"http://www.worldcat.org/webservices/catalog/content/";
-            var queryURI = baseUri + oclcNumber + "?wskey=" + WSKey;
+            var queryURI = baseUri + oclcNumber + "?wskey=" + wsKey;
 
             var request = WebRequest.CreateHttp(queryURI);
             using (var response = await request.GetResponseAsync()) {
@@ -166,7 +159,7 @@ namespace BigData.OCLC {
             public string origin;
         }
 
-        public async static Task<string> GetIPAddress() {
+        async static Task<string> GetIPAddress() {
             if (localIPAddress != null) {
                 return localIPAddress;
             }
@@ -241,7 +234,7 @@ namespace BigData.OCLC {
             }
         }
 
-        BitmapSource DrawPublicationImage(string title, string author) {
+        static BitmapSource DrawPublicationImage(string title, string author) {
             var size = new Size(800, 1200);
 
             var titleText = new FormattedText(title,
