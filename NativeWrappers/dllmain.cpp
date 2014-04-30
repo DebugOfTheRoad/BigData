@@ -30,5 +30,14 @@ extern "C" {
 		}
 		return SUCCEEDED(hrReturnValue);
 	}
+
+	_declspec(dllexport) BOOL HideTouchKeyboard() {
+		HWND keyboardWindow = FindWindow("IPTip_Main_Window", NULL);
+		if (keyboardWindow) {
+			return PostMessage(keyboardWindow, WM_SYSCOMMAND, SC_CLOSE, NULL);
+		} else {
+			return false;
+		}
+	}
 }
 

@@ -15,54 +15,65 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace BigData.UI {
+
+    /// <summary>
+    /// InfoGrid is a fullscreen overlay for the display that shows a
+    /// Publication in detail.
+    /// </summary>
     public class InfoGrid : Grid {
 
-        const double EASE_IN_TIME = 0.1; // seconds
-        Process keyboardProcess;
-
+        /// <summary>
+        /// Create and initialize a new InfoGrid
+        /// </summary>
+        /// <param name="pub">The publication to show</param>
         public InfoGrid(Publication pub) {
             publication = pub;
-            InitializeComponent();
+
+            Opacity = 0;
+            Background = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0));
+
+            SetupGrid();
+
+            AddCoverImage();
+            AddInfoPanel();
+
+            SetupInputPanel();
+
+            Loaded += AnimateIn;
         }
 
-        public static readonly RoutedEvent DoneEvent = EventManager.RegisterRoutedEvent(
-            "Done", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(InfoGrid)
-        );
-
+        /// <summary>
+        /// Raised after the InfoGrid has animated off the screen
+        /// </summary>
         public event RoutedEventHandler Done {
             add { AddHandler(DoneEvent, value); }
             remove { RemoveHandler(DoneEvent, value); }
         }
 
-        public static readonly RoutedEvent EmailSentEvent = EventManager.RegisterRoutedEvent(
-            "EmailSent", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(InfoGrid)
-        );
-
+        /// <summary>
+        /// Raised after the InfoGrid has sent a user an email
+        /// </summary>
         public event RoutedEventHandler EmailSent {
             add { AddHandler(EmailSentEvent, value); }
             remove { RemoveHandler(EmailSentEvent, value); }
         }
 
-        private Publication publication;
-        private bool showingTextBox;
-        private Grid controlGrid;
-        private TextBox box;
-        private TextBlock borrowLabel;
-        private StackPanel panel;
+        Publication publication;
+        StackPanel inputPanel;
+        TextBox usernameBox;
+        TextBlock borrowLabel;
+        StackPanel infoPanel;
 
-        void InitializeComponent() {
-            showingTextBox = false;
-
-            Opacity = 0;
-            Background = new SolidColorBrush(Color.FromArgb(200, 0, 0, 0));
-
+        void SetupGrid() {
             ColumnDefinitions.Add(new ColumnDefinition() {
-                Width = new GridLength(4, GridUnitType.Star)
+                Width = new GridLength(2, GridUnitType.Star)
             });
             ColumnDefinitions.Add(new ColumnDefinition() {
-                Width = new GridLength(6, GridUnitType.Star)
+                Width = new GridLength(3, GridUnitType.Star)
             });
+        }
 
+        void AddCoverImage() {
             var image = new Image() {
                 Source = publication.CoverImage,
                 Margin = new Thickness { Left = 0, Right = 0, Top = 200, Bottom = 200 },
@@ -70,13 +81,22 @@ namespace BigData.UI {
             };
             Grid.SetColumn(image, 0);
             Children.Add(image);
+        }
 
-            panel = new StackPanel {
+        void AddInfoPanel() {
+            infoPanel = new StackPanel {
                 Orientation = Orientation.Vertical,
             };
-            Grid.SetColumn(panel, 1);
-            Children.Add(panel);
+            Grid.SetColumn(infoPanel, 1);
+            Children.Add(infoPanel);
 
+            AddTitle();
+            AddAuthor();
+            AddDescription();
+            AddBorrowLabel();
+        }
+
+        void AddTitle() {
             var title = new TextBlock {
                 Text = publication.Title,
                 Foreground = Brushes.White,
@@ -85,8 +105,10 @@ namespace BigData.UI {
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(50, 200, 50, 0),
             };
-            panel.Children.Add(title);
+            infoPanel.Children.Add(title);
+        }
 
+        void AddAuthor() {
             var author = new TextBlock {
                 Text = publication.Authors.DefaultIfEmpty("").First(),
                 Foreground = Brushes.White,
@@ -95,8 +117,10 @@ namespace BigData.UI {
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(50, 0, 50, 0),
             };
-            panel.Children.Add(author);
+            infoPanel.Children.Add(author);
+        }
 
+        void AddDescription() {
             var description = new TextBlock {
                 Text = publication.Description,
                 Foreground = Brushes.White,
@@ -104,12 +128,14 @@ namespace BigData.UI {
                 FontFamily = new FontFamily("Segoe UI Light"),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(50, 0, 200, 0),
+                TextTrimming = TextTrimming.WordEllipsis,
+                MaxHeight = 200,
+                MaxWidth = 400,
             };
-            if (description.Text.Length > 200) {
-                description.Text = new String(description.Text.Take(200).ToArray()) + "...";
-            }
-            panel.Children.Add(description);
+            infoPanel.Children.Add(description);
+        }
 
+        void AddBorrowLabel() {
             borrowLabel = new TextBlock {
                 Text = "Borrow Now ›",
                 Foreground = Brushes.White,
@@ -118,40 +144,31 @@ namespace BigData.UI {
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(50, 20, 50, 0),
             };
+            borrowLabel.StylusSystemGesture += BorrowLabelGesture;
+            infoPanel.Children.Add(borrowLabel);
+        }
 
-            panel.Children.Add(borrowLabel);
-
-            controlGrid = new Grid {
-                Margin = new Thickness(50, 20, 50, 0),
-                //RenderTransform = new TranslateTransform(0, 1000),
-                Width = 600,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                Opacity = 0,
+        void SetupInputPanel() {
+            inputPanel = new StackPanel {
+                Orientation = Orientation.Horizontal,
             };
-            controlGrid.RowDefinitions.Add(new RowDefinition());
-            controlGrid.ColumnDefinitions.Add(new ColumnDefinition {
-                Width = new GridLength(400)
-            });
-            controlGrid.ColumnDefinitions.Add(new ColumnDefinition {
-                Width = new GridLength(200)
-            });
-            panel.Children.Add(controlGrid);
 
+            AddUsernameTextBox();
+            AddSendLabel();
+        }
 
-            box = new TextBox {
+        void AddUsernameTextBox() {
+            usernameBox = new TextBox {
                 FontSize = 36,
                 Text = "Username",
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 Width = 400,
             };
-            box.KeyUp += (sender, args) => {
-                if (args.Key != Key.Enter) { return; }
-                SendEMail();
-            };
-            Grid.SetRow(box, 0);
-            Grid.SetColumn(box, 0);
-            controlGrid.Children.Add(box);
+            usernameBox.KeyUp += UsernameKeyUp;
+            inputPanel.Children.Add(usernameBox);
+        }
 
+        void AddSendLabel() {
             var sendLabel = new TextBlock {
                 Text = "Send ›",
                 Foreground = Brushes.White,
@@ -159,85 +176,71 @@ namespace BigData.UI {
                 FontFamily = new FontFamily("Segoe UI Light"),
                 Margin = new Thickness(20, 0, 0, 0)
             };
-            Grid.SetRow(sendLabel, 0);
-            Grid.SetColumn(sendLabel, 1);
-            controlGrid.Children.Add(sendLabel);
-            sendLabel.StylusSystemGesture += (_, e) => {
-                if (e.SystemGesture == SystemGesture.Tap) {
-                    SendEMail();
-                    e.Handled = true;
-                }
-            };
-            sendLabel.MouseUp += (_, e) => {
-                e.Handled = true;
-                SendEMail();
-            };
+            sendLabel.StylusSystemGesture += SendLabelGesture;
+            inputPanel.Children.Add(sendLabel);
+        }
 
-            borrowLabel.StylusSystemGesture += (_, e) => {
-                if (e.SystemGesture == SystemGesture.Tap) {
-                    ShowTextBox();
-                    e.Handled = true;
-                }
-            };
-            borrowLabel.MouseUp += (_, e) => {
-                e.Handled = true;
-                ShowTextBox();
-            };
+        void BorrowLabelGesture(object sender, StylusSystemGestureEventArgs args) {
+            if (args.SystemGesture != SystemGesture.Tap) { return; }
 
-            StylusSystemGesture += (_, e) => {
-                if (e.SystemGesture == SystemGesture.Tap) {
-                    e.Handled = true;
-                    AnimateOut();
-                }
-            };
-            MouseUp += (_, e) => {
-                e.Handled = true;
-                AnimateOut();
-            };
+            RemoveBorrowLabel();
+            args.Handled = true;
+        }
 
-            Loaded += AnimateIn;
+        void SendLabelGesture(object sender, StylusSystemGestureEventArgs args) {
+            if (args.SystemGesture != SystemGesture.Tap) { return; }
+
+            SendEMail();
+            args.Handled = true;
+        }
+
+        void UsernameKeyUp(object sender, KeyEventArgs args) {
+            if (args.Key != Key.Enter && args.Key != Key.Return) { return; }
+
+            SendEMail();
         }
 
         void SendEMail() {
-            Emailer.Emailer.emailSend(box.Text, publication);
+            Emailer.Emailer.emailSend(usernameBox.Text, publication);
             AnimateOut();
             RaiseEvent(new RoutedEventArgs(InfoGrid.EmailSentEvent));
         }
 
-        void ShowTextBox() {
-            if (showingTextBox) { return; }
-            showingTextBox = true;
+        void RemoveBorrowLabel() {
+            if (!infoPanel.Children.Contains(borrowLabel)) { return; }
 
             var outAnimation = new DoubleAnimation {
                 From = 1,
                 To = 0,
-                Duration = new Duration(TimeSpan.FromSeconds(0.1)),
-                //EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+                Duration = new Duration(TimeSpan.FromSeconds(EASE_IN_TIME)),
             };
 
             outAnimation.Completed += delegate {
-                Console.WriteLine("Outanimation done");
-                panel.Children.Remove(borrowLabel);
-
-                var inAnimation = new DoubleAnimation {
-                    From = 0,
-                    To = 1,
-                    Duration = new Duration(TimeSpan.FromSeconds(0.1)),
-                };
-
-                inAnimation.Completed += delegate {
-                    box.SelectAll();
-                    box.Focus();
-
-                    keyboardProcess = Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
-                };
-
-                controlGrid.ApplyAnimationClock(Grid.OpacityProperty, inAnimation.CreateClock());
+                infoPanel.Children.Remove(borrowLabel);
+                AddInputPanel();
             };
 
             borrowLabel.ApplyAnimationClock(TextBlock.OpacityProperty, outAnimation.CreateClock());
+        }
 
-            
+        void AddInputPanel() {
+            if (infoPanel.Children.Contains(inputPanel)) { return; }
+            infoPanel.Children.Add(inputPanel);
+
+            var inAnimation = new DoubleAnimation {
+                From = 0,
+                To = 1,
+                Duration = new Duration(TimeSpan.FromSeconds(0.1)),
+            };
+
+            inAnimation.Completed += delegate {
+                usernameBox.SelectAll();
+                usernameBox.Focus();
+
+                Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
+            };
+
+            inputPanel.ApplyAnimationClock(Grid.OpacityProperty, inAnimation.CreateClock());
         }
 
         void AnimateIn(object sender, RoutedEventArgs e) {
@@ -253,20 +256,24 @@ namespace BigData.UI {
 
             ApplyAnimationClock(Grid.OpacityProperty, clock);
             clock.Completed += (s, e2) => {
-                var args = new RoutedEventArgs(InfoGrid.DoneEvent);
+                var args = new RoutedEventArgs(DoneEvent);
                 RaiseEvent(args);
             };
 
-            var window = FindWindow("IPTip_Main_Window", null);
-            const uint WM_SYSCOMMAND = 274;
-            IntPtr SC_CLOSE = (IntPtr)61536;
-            PostMessage(window, WM_SYSCOMMAND, SC_CLOSE, (IntPtr)0);
+            HideTouchKeyboard();
         }
 
-        [DllImport("user32.dll")]
-        private static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+        const double EASE_IN_TIME = 0.1; // seconds
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        static readonly RoutedEvent DoneEvent = EventManager.RegisterRoutedEvent(
+            "Done", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(InfoGrid)
+        );
+
+        static readonly RoutedEvent EmailSentEvent = EventManager.RegisterRoutedEvent(
+            "EmailSent", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(InfoGrid)
+        );
+
+        [DllImport("NativeWrappers.dll", CallingConvention = CallingConvention.Cdecl)]
+        static extern bool HideTouchKeyboard();
     }
 }
