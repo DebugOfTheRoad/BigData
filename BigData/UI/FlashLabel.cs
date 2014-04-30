@@ -10,26 +10,18 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace BigData.UI {
+
+    /// <summary>
+    /// A label that displays a message at the top of the screen for a
+    /// short period of time. Use this to notify users of events like the
+    /// display being reloaded or an email being sent.
+    /// </summary>
     class FlashLabel : Label {
 
+        /// <summary>
+        /// Create and initialize a new FlashLabel
+        /// </summary>
         public FlashLabel() {
-            InitializeComponent();
-        }
-
-        public TimeSpan FlashDuration { get; set; }
-
-        public static readonly RoutedEvent DoneEvent = EventManager.RegisterRoutedEvent(
-            "Done",
-            RoutingStrategy.Bubble,
-            typeof(RoutedEventHandler),
-            typeof(FlashLabel));
-
-        public event RoutedEventHandler Done {
-            add { AddHandler(DoneEvent, value); }
-            remove { RemoveHandler(DoneEvent, value); }
-        }
-
-        void InitializeComponent() {
             FontFamily = new FontFamily("Segoe UI Light");
             FontSize = 30;
             HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch;
@@ -40,6 +32,19 @@ namespace BigData.UI {
             RenderTransform = new TranslateTransform(0, -Height);
 
             Loaded += AnimateIn;
+        }
+
+        /// <summary>
+        /// The duration to show this flash message for
+        /// </summary>
+        public TimeSpan FlashDuration { get; set; }
+
+        /// <summary>
+        /// Raised after the flash message has animated off the screen
+        /// </summary>
+        public event RoutedEventHandler Done {
+            add { AddHandler(DoneEvent, value); }
+            remove { RemoveHandler(DoneEvent, value); }
         }
 
         void AnimateIn(object sender, EventArgs args) {
@@ -73,7 +78,7 @@ namespace BigData.UI {
             };
 
             animation.Completed += delegate {
-                RaiseEvent(new RoutedEventArgs(FlashLabel.DoneEvent));
+                RaiseEvent(new RoutedEventArgs(DoneEvent));
             };
 
             RenderTransform.ApplyAnimationClock(
@@ -83,5 +88,10 @@ namespace BigData.UI {
 
         static Duration AnimationDuration = TimeSpan.FromSeconds(0.25);
         static IEasingFunction AnimationEase = new CubicEase { EasingMode = EasingMode.EaseInOut };
+        static readonly RoutedEvent DoneEvent = EventManager.RegisterRoutedEvent(
+            "Done",
+            RoutingStrategy.Bubble,
+            typeof(RoutedEventHandler),
+            typeof(FlashLabel));
     }
 }
