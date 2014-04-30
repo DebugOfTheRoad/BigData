@@ -20,28 +20,30 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace BigData.UI {
+
+    /// <summary>
+    /// The main window of the program.
+    /// 
+    /// Like most Windows apps, the main window "owns" all of the application
+    /// components. This way, when the main window is closed, the application
+    /// terminates.
+    /// </summary>
     class MainWindow : Window {
+
+        /// <summary>
+        /// Create and initialize a new MainWindow
+        /// </summary>
         public MainWindow() {
-            InitializeComponent();
-        }
-
-        public  OCLC.Database PublicationCache { get; set; }
-        public Management_Interface.ManagementServer Server { get; set; }
-
-        private Grid grid;
-
-        private void InitializeComponent() {
             WindowStyle = WindowStyle.None;
             WindowState = WindowState.Maximized;
             Visibility = Visibility.Visible;
             Title = "Digital Publication Display";
 
-            Loaded += PopulateDisplay;
+            Loaded += delegate { UpdateDisplay(); };
             Loaded += StartServer;
             Closed += StopServer;
 
             // set up a 1 by 3 grid to hold PublicationCanvas objects
-            grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.RowDefinitions.Add(new RowDefinition());
             grid.RowDefinitions.Add(new RowDefinition());
@@ -51,10 +53,14 @@ namespace BigData.UI {
             DisableEdgeGestures();
         }
 
+        OCLC.Database publicationCache = new OCLC.Database();
+        Management_Interface.ManagementServer server = new Management_Interface.ManagementServer();
+        Grid grid = new Grid();
+
         async void UpdateDisplay() {
             FlashMessage("Loading...", Brushes.LightYellow);
 
-            var allPublications = await PublicationCache.GetPublications();
+            var allPublications = await publicationCache.GetPublications();
 
             // divide publications into three groups
             var groups = allPublications
@@ -82,22 +88,16 @@ namespace BigData.UI {
             FlashMessage("Loaded", Brushes.LightGreen);
         }
 
-        void PopulateDisplay(object sender, RoutedEventArgs args) {
-            PublicationCache = new OCLC.Database();
-            UpdateDisplay();
-        }
-
         void StartServer(object sender, EventArgs args) {
-            Server = new Management_Interface.ManagementServer();
-            Server.CreateServer();
-            Server.UpdateDatabaseAction = async delegate {
-                await PublicationCache.UpdateDatabase();
+            server.StartServer();
+            server.UpdateDatabaseAction = async delegate {
+                await publicationCache.UpdateDatabase();
                 Application.Current.Dispatcher.Invoke(UpdateDisplay);
             };
         }
 
         void StopServer(object sender, EventArgs args) {
-            Server.StopServer();
+            server.StopServer();
         }
 
         void FlashMessage(string text, Brush background) {

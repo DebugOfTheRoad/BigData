@@ -10,16 +10,12 @@ using System.IO;
 namespace BigData.Management_Interface {
     class ManagementServer {
 
-        public ManagementServer() {
-            listener = new HttpListener();
-        }
-
         public Action UpdateDatabaseAction { get; set; }
 
         /// <summary>
         /// Creates a local server and begins listening for requests.
         /// </summary>
-        public void CreateServer() {
+        public void StartServer() {
             Console.WriteLine("Starting server...");
             listener.Prefixes.Add(ListenPrefix);
             listener.Start();
@@ -41,7 +37,7 @@ namespace BigData.Management_Interface {
             }
         }
 
-        HttpListener listener;
+        HttpListener listener = new HttpListener();
         Thread responseThread;
 
         // Finds the path to the html files in the project space
