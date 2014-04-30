@@ -8,7 +8,11 @@ using System.Threading;
 using System.IO;
 
 namespace BigData.Management_Interface {
-    class ManagementServer {
+
+    /// <summary>
+    /// Controls a web server serving the product's web management interface.
+    /// </summary>
+    class ManagementServer : IDisposable {
 
         public Action UpdateDatabaseAction { get; set; }
 
@@ -25,7 +29,10 @@ namespace BigData.Management_Interface {
             Console.WriteLine("Server listening on " + ListenPrefix);
         }
 
-        public void StopServer() {
+        /// <summary>
+        /// Shuts down server and cleans up
+        /// </summary>
+        public void Dispose() {
             if (responseThread.IsAlive) {
                 responseThread.Abort();
             }

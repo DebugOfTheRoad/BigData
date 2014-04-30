@@ -103,7 +103,7 @@ namespace BigData.UI {
         }
 
         void StopServer(object sender, EventArgs args) {
-            server.StopServer();
+            server.Dispose();
         }
 
         void FlashMessage(string text, Brush background) {
