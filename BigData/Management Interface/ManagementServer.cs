@@ -22,7 +22,14 @@ namespace BigData.Management_Interface {
         public void StartServer() {
             Console.WriteLine("Starting server...");
             listener.Prefixes.Add(ListenPrefix);
-            listener.Start();
+
+            try {
+                listener.Start();
+            } catch (Exception) {
+                System.Windows.MessageBox.Show(
+                    "See http://msdn.microsoft.com/en-us/library/windows/desktop/cc307223(v=vs.85).aspx",
+                    "Could not listen on port 80");
+            }
 
             responseThread = new Thread(HandleRequests);
             responseThread.Start();
@@ -111,7 +118,6 @@ namespace BigData.Management_Interface {
                         // Read management html from file
                         string htmlString = File.ReadAllText(Path.Combine(ResourcePath, "management.html"));
                         Dictionary<string, string> values = new Dictionary<string, string>();
-                        values["emailsSent"] = "0";
                         values["rssFeed"] = Properties.Settings.Default.RSSUri;
                         values["count"] = Properties.Settings.Default.Count.ToString();
                         values["wsKey"] = Properties.Settings.Default.WSKey;
