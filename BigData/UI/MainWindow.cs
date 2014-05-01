@@ -61,7 +61,28 @@ namespace BigData.UI {
         Management_Interface.ManagementServer server;
         Grid grid;
 
+        bool HasCredentials() {
+            if (Properties.Settings.Default.RSSUri == null || Properties.Settings.Default.RSSUri.Length == 0) {
+                FlashMessage("No book list - Enter one in the management interface", Brushes.LightSalmon);
+                return false;
+            }
+
+            if (Properties.Settings.Default.WSKey == null || Properties.Settings.Default.WSKey.Length == 0) {
+                FlashMessage("No WSKey - Enter one in the management interface", Brushes.LightSalmon);
+                return false;
+            }
+
+            if (Properties.Settings.Default.MailPassword == null || Properties.Settings.Default.MailPassword.Length == 0) {
+                FlashMessage("No Mail Password - Enter one in the management interface", Brushes.LightSalmon);
+                return false;
+            }
+
+            return true;
+        }
+
         async void UpdateDisplay() {
+            if (!HasCredentials()) { return; }
+
             FlashMessage("Loading...", Brushes.LightYellow);
 
             var allPublications = await publicationCache.GetPublications();
@@ -97,8 +118,9 @@ namespace BigData.UI {
         void StartServer(object sender, EventArgs args) {
             server.StartServer();
             server.UpdateDatabaseAction = async delegate {
+                if (!HasCredentials()) { return; }
                 await publicationCache.UpdateDatabase();
-                Application.Current.Dispatcher.Invoke(UpdateDisplay);
+                UpdateDisplay();
             };
         }
 

@@ -3,10 +3,10 @@
   <Profiles />
   <Settings>
     <Setting Name="WSKey" Type="System.String" Scope="User">
-      <Value Profile="(Default)">XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="RSSUri" Type="System.String" Scope="User">
-      <Value Profile="(Default)">https://bucknell.worldcat.org/profiles/librarybookdisplay/lists/3233826/</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="MailFrom" Type="System.String" Scope="User">
       <Value Profile="(Default)">librarydisplaydonotreply@gmail.com</Value>
@@ -15,7 +15,7 @@
       <Value Profile="(Default)">Library Digital Display</Value>
     </Setting>
     <Setting Name="MailPassword" Type="System.String" Scope="User">
-      <Value Profile="(Default)">readingisgood</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Count" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">2000</Value>

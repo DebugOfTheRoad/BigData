@@ -122,7 +122,7 @@ namespace BigData.Management_Interface {
                         responsePage = System.Text.Encoding.UTF8.GetBytes(htmlValues);
                     } else if (context.Request.HttpMethod == "POST" && context.Request.Url.AbsolutePath == "/update") {
                         Console.WriteLine("Refreshing database...");
-                        UpdateDatabaseAction();
+                        System.Windows.Application.Current.Dispatcher.Invoke(UpdateDatabaseAction);
                         responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "confirmation.html"));
                     } else {
                         responsePage = File.ReadAllBytes(Path.Combine(ResourcePath, "fail.html"));

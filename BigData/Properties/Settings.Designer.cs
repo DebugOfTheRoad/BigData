@@ -25,7 +25,7 @@ namespace BigData.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("XYBOEZiodAgSpDI9gLiQcv6o4r78ZuHOELWT2c7F5F9iqIx7VXnbXrt4a2HTpUYCDSKOwoD25joHpkVy")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string WSKey {
             get {
                 return ((string)(this["WSKey"]));
@@ -37,7 +37,7 @@ namespace BigData.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("https://bucknell.worldcat.org/profiles/librarybookdisplay/lists/3233826/")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string RSSUri {
             get {
                 return ((string)(this["RSSUri"]));
@@ -73,7 +73,7 @@ namespace BigData.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("readingisgood")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string MailPassword {
             get {
                 return ((string)(this["MailPassword"]));
