@@ -29,23 +29,27 @@ namespace BigData.UI {
 
             // map Image objects to Publications
             publications = pubs.ToDictionary(
-                p => new Image() { Source = p.CoverImage, Height = height },
+                p => new Image() {
+                    Source = p.CoverImage,
+                    Height = height,
+                    RenderTransform = new TranslateTransform(),
+                },
                 p => p
             );
-
             images = publications.Keys.ToArray();
+            positions = new double[images.Length];
 
             // shift entire display 500px left
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
 
             // initially layout images
             tileWidth = 0;
-            foreach (var image in publications.Keys) {
+            for (int i = 0; i < images.Length; i++) {
+                var image = images[i];
+                positions[i] = tileWidth;
                 Children.Add(image);
-                image.RenderTransform = new TranslateTransform(tileWidth, 0);
                 image.StylusSystemGesture += ImageTapped;
-                image.SnapsToDevicePixels = true;
-                tileWidth += (image.Height / image.Source.Height) * image.Source.Width;
+                tileWidth += (int)((image.Height / image.Source.Height) * image.Source.Width);
             }
 
             // allow multitouch manipulation
@@ -72,8 +76,9 @@ namespace BigData.UI {
         }
 
         Image[] images;
+        double[] positions;
         Dictionary<Image, Publication> publications;
-        double tileWidth;
+        int tileWidth;
         DispatcherTimer timer;
 
         void BeginManipulation(object sender, ManipulationStartingEventArgs args) {
@@ -98,13 +103,15 @@ namespace BigData.UI {
         }
 
         void ScrollImagesBy(double delta) {
-            foreach (var image in images) {
+            for (int i = 0; i < images.Length; i++) {
+                var image = images[i];
                 var translation = (TranslateTransform)image.RenderTransform;
 
-                var nextX = (translation.X + delta) % tileWidth;
+                var nextX = (positions[i] + delta) % tileWidth;
                 if (nextX < 0) { nextX += tileWidth; }
 
-                translation.X = nextX;
+                positions[i] = nextX;
+                translation.X = (int)nextX;
             }
         }
 
@@ -116,7 +123,7 @@ namespace BigData.UI {
                 PublicationCanvas.PublicationSelectedEvent, publication));
         }
 
-        const double RESTING_VELOCITY = 0.1; // pixels per frame
+        const double RESTING_VELOCITY = 0.5; // pixels per frame
         const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
         const double DECELERATION = (50.0 * 96) / (1000 * 1000);
 
