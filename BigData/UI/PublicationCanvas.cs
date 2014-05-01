@@ -33,6 +33,8 @@ namespace BigData.UI {
                 p => p
             );
 
+            images = publications.Keys.ToArray();
+
             // shift entire display 500px left
             RenderTransform = new TranslateTransform() { X = RENDER_TRANSFORM };
 
@@ -69,13 +71,16 @@ namespace BigData.UI {
             remove { RemoveHandler(PublicationSelectedEvent, value); }
         }
 
+        Image[] images;
         Dictionary<Image, Publication> publications;
         double tileWidth;
         DispatcherTimer timer;
 
         void BeginManipulation(object sender, ManipulationStartingEventArgs args) {
-            if (args.Mode == ManipulationModes.TranslateX) {
+            if (args.Mode.HasFlag(ManipulationModes.TranslateX)) {
                 timer.IsEnabled = false;
+            } else {
+                args.Cancel();
             }
         }
 
@@ -93,7 +98,7 @@ namespace BigData.UI {
         }
 
         void ScrollImagesBy(double delta) {
-            foreach (var image in publications.Keys) {
+            foreach (var image in images) {
                 var translation = (TranslateTransform)image.RenderTransform;
 
                 var nextX = (translation.X + delta) % tileWidth;
@@ -111,7 +116,7 @@ namespace BigData.UI {
                 PublicationCanvas.PublicationSelectedEvent, publication));
         }
 
-        const double RESTING_VELOCITY = 0.05; // pixels per frame
+        const double RESTING_VELOCITY = 0.1; // pixels per frame
         const double RENDER_TRANSFORM = -500; // offset render 500 pixels left
         const double DECELERATION = (50.0 * 96) / (1000 * 1000);
 

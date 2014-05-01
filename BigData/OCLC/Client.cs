@@ -32,9 +32,10 @@ namespace BigData.OCLC {
         public Client() {
             wsKey = Properties.Settings.Default.WSKey;
 
-            var baseUri = new Uri(Properties.Settings.Default.RSSUri);
+            var baseUri = Properties.Settings.Default.RSSUri;
             feedUri = new Uri(
-                baseUri, "rss?count=" + Properties.Settings.Default.Count);
+                System.IO.Path.Combine(baseUri, "rss?count=" + Properties.Settings.Default.Count));
+            Console.WriteLine(feedUri);
         }
 
         /// <summary>

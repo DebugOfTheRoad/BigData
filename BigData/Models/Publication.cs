@@ -95,7 +95,7 @@ namespace BigData {
         /// <param name="tag">The tag to parse for</param>
         /// <param name="doc">The XDocument to parse</param>
         /// <returns>The data pointed to by the tag as a string</returns>
-        private static string GetOCLCFieldByTag(string tag, XDocument doc) {
+        static string GetOCLCFieldByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
             try {
                 return (from datafield in doc.Descendants(ns + "datafield")
@@ -113,7 +113,7 @@ namespace BigData {
         /// <param name="tag">The tag to parse for</param>
         /// <param name="doc">The XDocument to parse</param>
         /// <returns>A list of strings representing the fields pointed to by the tag</returns>
-        private static List<string> GetOCLCFieldsByTag(string tag, XDocument doc) {
+        static List<string> GetOCLCFieldsByTag(string tag, XDocument doc) {
             XNamespace ns = @"http://www.loc.gov/MARC21/slim";
             return (from datafield in doc.Descendants(ns + "datafield")
                     where datafield.Attribute("tag").Value.Equals(tag)
@@ -124,19 +124,19 @@ namespace BigData {
         /// <summary>
         /// List of the isbns associated with the Publication
         /// </summary>
-        private List<string> isbns;
+        List<string> isbns;
 
         /// <summary>
         /// The title of the Publication
         /// </summary>
-        private string title;
+        string title;
 
-        private const string formTag = "655";
-        private const string authorTag = "100";
-        private const string authorsTag = "700";
-        private const string isbnTag = "020";
-        private const string descTag = "520";
-        private const string contentsTag = "505";
-        private const string titleTag = "245";
+        static string formTag = "655";
+        static string authorTag = "100";
+        static string authorsTag = "700";
+        static string isbnTag = "020";
+        static string descTag = "520";
+        static string contentsTag = "505";
+        static string titleTag = "245";
     }
 }
